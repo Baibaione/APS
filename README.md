@@ -204,11 +204,11 @@ LVB and VideoMME use question-level accuracy. **The main MLVU metric is the unwe
 
 Historical APS results are shown below. [reports/main_table.json](reports/main_table.json) contains nine APS aggregates and nine Uniform controls; results for other frame-selection methods are excluded. These measurements come from the original MetaX/FlagOS experiments, not the NVIDIA port.
 
-| Model | Frames | LVB | VideoMME | MLVU Macro |
+| Model | Frames | LVB | VideoMME | MLVU Micro |
 |---|---:|---:|---:|---:|
-| Qwen2.5-VL-7B | 32 | 63.80% | 62.33% | 68.05% |
-| InternVL3-8B | 32 | 63.58% | 66.85% | 74.17% |
-| MiniCPM-V-4 | 16 | 58.12% | 57.63% | 58.21% |
+| Qwen2.5-VL-7B | 32 | 63.80% | 62.33% | 69.64% |
+| InternVL3-8B | 32 | 63.58% | 66.85% | 75.21% |
+| MiniCPM-V-4 | 16 | 58.12% | 57.63% | 61.82% |
 
 Answer parsing follows the historical experiments. LVB uses the original random fallback with a fixed per-question seed when parsing fails. VideoMME/MLVU count unparsed answers as incorrect and report their count separately. Some MiniCPM responses contain answer text rather than an option letter; parser changes must be applied consistently to all compared methods. InternVL's original Chinese system prompt is preserved verbatim because it is part of the evaluation input; code comments, docstrings, and runtime messages are in English.
 
