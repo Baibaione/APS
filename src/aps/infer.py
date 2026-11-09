@@ -19,8 +19,7 @@ import sys
 import time
 import traceback
 
-METHODS = ('uniform', 'aps')
-LEGACY_METHODS = ['uniform', 'aps']  # 早期 manifest 没有 methods 字段时的默认值
+METHODS = ('aps', 'uniform')
 POST_PROMPT = "Answer with the option's letter from the given choices directly.\n"
 
 DATASETS = {
@@ -32,7 +31,7 @@ DATASETS = {
         'function_names': {'longvideobench_doc_to_text', 'get_multi_choice_info', 'parse_multi_choice_response'},
         'doc_to_text': 'longvideobench_doc_to_text',
         'prompt_kwargs': {'pre_prompt': '', 'post_prompt': POST_PROMPT},
-        'max_tokens': 32, 'aks_default': {16: 'aks_16.json', 32: 'longvideobench_32.json', 64: 'selected_frames.json'},
+        'max_tokens': 32,
         'group_fields': ('duration_group', 'question_category'),
         'float_frames': False, 'random_parser': True,
         'gold_of': lambda doc: chr(65 + doc['correct_choice']),
@@ -46,7 +45,7 @@ DATASETS = {
         'function_names': {'videomme_doc_to_text', 'extract_characters_regex'},
         'doc_to_text': 'videomme_doc_to_text',
         'prompt_kwargs': {'post_prompt': "\nAnswer with the option's letter from the given choices directly."},
-        'max_tokens': 16, 'aks_default': {16: 'aks_16.json', 32: 'videomme_32.json', 64: 'selected_frames.json'},
+        'max_tokens': 16,
         'group_fields': ('duration', 'domain', 'sub_category', 'task_type'),
         'float_frames': True, 'random_parser': False,
         'gold_of': lambda doc: doc['answer'],
@@ -61,7 +60,7 @@ DATASETS = {
         'function_names': {'mlvu_doc_to_text', 'extract_characters_regex'},
         'doc_to_text': 'mlvu_doc_to_text',
         'prompt_kwargs': {'pre_prompt': '', 'post_prompt': '\nOnly give the best option.\nBest option: ('},
-        'max_tokens': 16, 'aks_default': {16: 'aks_16.json', 32: 'mlvu_32.json'},
+        'max_tokens': 16,
         'group_fields': ('task_type',),
         'float_frames': False, 'random_parser': False,
         'gold_of': lambda doc: doc['answer'],
@@ -78,8 +77,6 @@ def as_int_frames(rows):
 # 模型类型：与数据集正交，从模型 config.json 的 architectures 自动识别
 MODEL_TYPES = {
     'qwen2vl': {'nframes': 32},
-    'llava_next_video': {'nframes': 64, 'frame_size': 336, 'tokens_per_frame': 144},
-    'llava_onevision': {'nframes': 32, 'frame_size': 384, 'tokens_per_frame': 196},
     # InternVL 系列：每帧 vllm 强制 resize 到 448×448 单 tile，256 token/帧；
     # uniform 用官方 get_index 居中采样（与 lmms-eval internvl 一致）
     'internvl': {'nframes': 32, 'frame_size': 448, 'tokens_per_frame': 256},
@@ -90,8 +87,6 @@ MODEL_TYPES = {
 ARCH_TO_MODEL_TYPE = {
     'Qwen2VLForConditionalGeneration': 'qwen2vl',
     'Qwen2_5_VLForConditionalGeneration': 'qwen2vl',
-    'LlavaNextVideoForConditionalGeneration': 'llava_next_video',
-    'LlavaOnevisionForConditionalGeneration': 'llava_onevision',
     'InternVLChatModel': 'internvl',
     'MiniCPMV': 'minicpmv',
 }
@@ -106,33 +101,27 @@ def detect_model_type(model_path):
 
 
 def build_prompt(model_type, processor, text):
-    """与作者评测一致的 prompt。qwen2vl 用 HF chat template；
-    llava_next_video 用作者 conv_template=chatml_direct（add_time_instruction=False）；
-    llava_onevision 用 lmms-eval 默认 conv_template=qwen_1_5（注意：AKS 补丁文件的
-    默认值 vicuna_v1 与 Qwen2 骨干不匹配，此处按 lmms-eval 原版默认对齐）；
-    internvl 用其 chat template 的默认 system 消息 + 视频占位符 <video>；
-    前三种的 vLLM 侧视频占位符均为 <video>。"""
+    """Preserve the APS experiment prompts for the three answering models.
+
+    Qwen uses its HF chat template; InternVL uses its default system message
+    and video placeholder. MiniCPM image placeholders are added by the worker.
+    """
     if model_type == 'qwen2vl':
         return processor.apply_chat_template([
             {'role': 'system', 'content': 'You are a helpful assistant.'},
             {'role': 'user', 'content': [{'type': 'video'}, {'type': 'text', 'text': text}]}],
             tokenize=False, add_generation_prompt=True)
-    if model_type == 'llava_next_video':
-        return ("<|im_start|>system\nAnswer the questions.<|im_end|>"
-                "<|im_start|>user\n<video>\n" + text + "<|im_end|><|im_start|>assistant\n")
     if model_type == 'internvl':
         return ("<|im_start|>system\n"
                 "你是书生·万象，英文名是InternVL，是由上海人工智能实验室、清华大学及多家合作单位联合开发的多模态大语言模型。<|im_end|>\n"
                 "<|im_start|>user\n<video>\n" + text + "<|im_end|>\n"
                 "<|im_start|>assistant\n")
     if model_type == 'minicpmv':
-        # MiniCPM 视频 = 16 张图像 + 空格分隔占位符（BPE 合词防护，详见 smoke_minicpm.py）
+        # MiniCPM 视频 = 16 张图像 + 空格分隔占位符（BPE 合词防护）
         # build_prompt 里 nframes 通过 processor 未知，这里由 worker 在调用前处理好占位符；
         # 为简化，直接返回带空格占位符的文本（worker 按 nframes 在 text 前拼好）
         return text  # minicpmv 的占位符由 worker 单独拼
-    # llava_onevision: qwen_1_5 模板（SeparatorStyle.CHATML 渲染）
-    return ("<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
-            "<|im_start|>user\n<video>\n" + text + "<|im_end|>\n<|im_start|>assistant\n")
+    raise ValueError(f'Unsupported answering model type: {model_type}')
 
 
 def read_json(path):
@@ -165,7 +154,7 @@ def author_functions(path, names):
 
 
 def native_resize(height, width):
-    """AKS Qwen loader + qwen-vl-utils 0.0.8 smart_resize settings.
+    """Historical Qwen preprocessing with qwen-vl-utils 0.0.8 smart_resize settings.
 
     max_pixels = original height*width; min_pixels = 128*28*28.
     The later HF processor has no spatial resize left to perform.
@@ -192,9 +181,9 @@ def assigned(indices, rank, world):
 
 def validate_selected(indices, total_frames):
     if not indices or any(type(i) is not int or i < 0 or i >= total_frames for i in indices):
-        raise ValueError(f'AKS 帧编号越界或无效; 视频帧数={total_frames}, indices={indices[:8]}')
+        raise ValueError(f'APS 帧编号越界或无效; 视频帧数={total_frames}, indices={indices[:8]}')
     if indices != sorted(set(indices)):
-        raise ValueError('AKS 帧编号必须按时间排序且没有重复')
+        raise ValueError('APS 帧编号必须按时间排序且没有重复')
 
 
 def check_annotation_identity(docs, reference, dscfg):
@@ -242,7 +231,7 @@ def load_results(run_dir, repair_tail=False, rank=None):
 
 def summarize(run_dir):
     manifest = read_json(Path(run_dir) / 'manifest.json')
-    methods = manifest.get('methods', LEGACY_METHODS)
+    methods = manifest['methods']
     group_fields = manifest.get('group_fields', ['duration_group', 'question_category'])
     expected = {(i, m) for i in manifest['indices'] for m in methods}
     records = load_results(run_dir)
@@ -386,7 +375,7 @@ def preflight(args):
             if paths['model_type'] == 'qwen2vl':
                 rh, rw = native_resize(height, width)
             else:
-                # LLaVA-Video 由 vLLM 内的 HF video processor 统一缩放到 frame_size
+                # InternVL / MiniCPM 的图像处理器使用各自的 frame_size。
                 rh = rw = mcfg['frame_size']
             metadata[name] = {'total_frames': len(vr), 'fps': float(vr.get_avg_fps()),
                               'height': height, 'width': width, 'resized_height': rh, 'resized_width': rw}
@@ -456,8 +445,8 @@ def worker(run_dir, rank):
     docs = read_json(cfg['annotation'])
     functions = author_functions(cfg['utils'], dscfg['function_names'])
     indices = assigned(cfg['indices'], rank, len(cfg['gpus']))
-    methods_all = cfg.get('methods', LEGACY_METHODS)
-    sel_paths = cfg.get('selected_frames_map') if cfg.get('selected_frames_map') is not None else {'aks': cfg['selected_frames']}
+    methods_all = cfg['methods']
+    sel_paths = cfg['selected_frames_map']
     selections = {m: read_json(p) for m, p in sel_paths.items() if m in methods_all}
     candidates = read_json(cfg['candidate_frames']) if selections else None
     if dscfg['float_frames']:
@@ -491,7 +480,7 @@ def worker(run_dir, rank):
                      # cells 上限受 max_model_len=127800 约束（7×cells ≤ 127800）。
                      'max_pixels': 14190400}
     else:
-        mm_kwargs = {'do_sample_frames': False}
+        raise ValueError(f'Unsupported answering model type: {model_type}')
     trc = model_type in ('internvl', 'minicpmv')  # 这些仓库带 trust_remote_code 自定义代码
     if model_type == 'minicpmv':
         # MiniCPM 视频按 16 张图像喂，不走 vllm 的视频通道
@@ -523,10 +512,7 @@ def worker(run_dir, rank):
                 vr = decord.VideoReader(str(video_path), ctx=decord.cpu(0), num_threads=1)
                 if len(vr) < nframes:
                     raise ValueError(f'视频少于{nframes}原始帧，无法对齐作者nframes设置')
-                if model_type == 'llava_next_video':
-                    # 作者 np.linspace(0, len-1, 64, dtype=int)，截断取整
-                    uniform = torch.linspace(0, len(vr)-1, nframes, dtype=torch.float64).long().tolist()
-                elif model_type in ('internvl', 'minicpmv'):
+                if model_type in ('internvl', 'minicpmv'):
                     # InternVL/MiniCPM 居中分段采样（[0, n-1] 分 nframes 段取每段中点）
                     seg = len(vr) / nframes
                     uniform = [int(seg / 2 + round(seg * k)) for k in range(nframes)]
@@ -547,8 +533,7 @@ def worker(run_dir, rank):
                         fallback, frame_idx = False, uniform
                     else:
                         sel_i = selections[method][i]
-                        # 仅当候选帧本身不足nframes（短视频）时回退均匀采样；
-                        # 方法自身选不满nframes（如 rbfs_noredist）时如实使用所选帧
+                        # 候选不足预算时，以整段视频的均匀采样替换整组输入。
                         fallback = len(sel_i) < nframes and len(candidates[i]) < nframes
                         frame_idx = uniform if fallback else sorted(sel_i[:nframes])
                     # decord 在个别视频尾部取帧偶发 EOF 失败（同一视频其他分片可读），
@@ -565,9 +550,8 @@ def worker(run_dir, rank):
                             del vr
                             time.sleep(5 * (decode_attempt + 1))
                             vr = decord.VideoReader(str(video_path), ctx=decord.cpu(0), num_threads=1)
-                    if model_type in ('llava_next_video', 'internvl'):
-                        # llava_next_video 交给 vLLM 内 HF video processor 做 336 缩放；
-                        # internvl 由 vllm 的 InternVLVideoProcessor 做 448 单tile，
+                    if model_type == 'internvl':
+                        # InternVL 由 vLLM 的 InternVLVideoProcessor 做 448 单 tile，
                         # 需传 uint8 原始帧（PIL.fromarray 不接受 float32）
                         frames = raw
                     elif model_type == 'minicpmv':
@@ -653,7 +637,7 @@ def launch(args):
             raise ValueError('结果目录有预测但没有manifest，不能安全续跑')
         write_json(manifest,cfg)
     existing = load_results(run_dir, repair_tail=True)
-    expected = {(i,m) for i in cfg['indices'] for m in cfg.get('methods', LEGACY_METHODS)}
+    expected = {(i,m) for i in cfg['indices'] for m in cfg['methods']}
     if not set(existing).issubset(expected):
         raise ValueError('结果目录包含本次评测范围之外的预测')
     if set(existing) == expected:
@@ -721,7 +705,7 @@ def main():
     parser.add_argument('--kv-cache-gib', type=float, default=4)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--rank', type=int, default=0)
-    parser.add_argument('--methods', default='aps,uniform')
+    parser.add_argument('--methods', default='aps', help='APS by default; optionally include the Uniform control')
     args = parser.parse_args()
     groups = [g.split(',') for g in args.gpus.split(';')]
     gpus = [x for g in groups for x in g]

@@ -15,45 +15,12 @@
     {
       "model": "qwen25vl",
       "dataset": "longvideobench",
-      "method": "aks",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 63.7247569184742,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 63.7247569184742,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "longvideobench",
-      "method": "wfs",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 64.02393418100225,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 64.02393418100225,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "longvideobench",
       "method": "aps",
       "nframes": 32,
       "n": 1337,
       "accuracy_percent": 63.79955123410621,
       "metric": "accuracy",
       "micro_accuracy_percent": 63.79955123410621,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "longvideobench",
-      "method": "dig",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 61.40613313388182,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 61.40613313388182,
       "unparsed_answers": 0
     },
     {
@@ -70,45 +37,12 @@
     {
       "model": "qwen25vl",
       "dataset": "videomme",
-      "method": "aks",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 62.03703703703704,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 62.03703703703704,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "videomme",
-      "method": "wfs",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 63.407407407407405,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 63.407407407407405,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "videomme",
       "method": "aps",
       "nframes": 32,
       "n": 2700,
       "accuracy_percent": 62.333333333333336,
       "metric": "accuracy",
       "micro_accuracy_percent": 62.333333333333336,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "videomme",
-      "method": "dig",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 61.888888888888886,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 61.888888888888886,
       "unparsed_answers": 0
     },
     {
@@ -125,28 +59,6 @@
     {
       "model": "qwen25vl",
       "dataset": "mlvu",
-      "method": "aks",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 64.01674503053098,
-      "metric": "macro",
-      "micro_accuracy_percent": 65.17939282428704,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "mlvu",
-      "method": "wfs",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 67.67822133802488,
-      "metric": "macro",
-      "micro_accuracy_percent": 69.22723091076357,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "mlvu",
       "method": "aps",
       "nframes": 32,
       "n": 2174,
@@ -154,17 +66,6 @@
       "metric": "macro",
       "micro_accuracy_percent": 69.64121435142594,
       "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "mlvu",
-      "method": "dig",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 66.99579089792148,
-      "metric": "macro",
-      "micro_accuracy_percent": 68.44526218951242,
-      "unparsed_answers": 2
     },
     {
       "model": "internvl",
@@ -180,45 +81,12 @@
     {
       "model": "internvl",
       "dataset": "longvideobench",
-      "method": "aks",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 63.575168287210175,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 63.575168287210175,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "longvideobench",
-      "method": "wfs",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 63.20119670905011,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 63.20119670905011,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "longvideobench",
       "method": "aps",
       "nframes": 32,
       "n": 1337,
       "accuracy_percent": 63.575168287210175,
       "metric": "accuracy",
       "micro_accuracy_percent": 63.575168287210175,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "longvideobench",
-      "method": "dig",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 62.37845923709798,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 62.37845923709798,
       "unparsed_answers": 0
     },
     {
@@ -235,45 +103,12 @@
     {
       "model": "internvl",
       "dataset": "videomme",
-      "method": "aks",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 66.22222222222223,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 66.22222222222223,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "videomme",
-      "method": "wfs",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 66.74074074074075,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 66.74074074074075,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "videomme",
       "method": "aps",
       "nframes": 32,
       "n": 2700,
       "accuracy_percent": 66.85185185185185,
       "metric": "accuracy",
       "micro_accuracy_percent": 66.85185185185185,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "videomme",
-      "method": "dig",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 65.0,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 65.0,
       "unparsed_answers": 0
     },
     {
@@ -290,45 +125,12 @@
     {
       "model": "internvl",
       "dataset": "mlvu",
-      "method": "aks",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 73.07124829562372,
-      "metric": "macro",
-      "micro_accuracy_percent": 74.05703771849126,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "mlvu",
-      "method": "wfs",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 75.64458096672365,
-      "metric": "macro",
-      "micro_accuracy_percent": 77.09291628334867,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "mlvu",
       "method": "aps",
       "nframes": 32,
       "n": 2174,
       "accuracy_percent": 74.16679644368878,
       "metric": "macro",
       "micro_accuracy_percent": 75.20699172033119,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "mlvu",
-      "method": "dig",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 71.80728237070595,
-      "metric": "macro",
-      "micro_accuracy_percent": 73.22907083716652,
       "unparsed_answers": 0
     },
     {
@@ -345,45 +147,12 @@
     {
       "model": "minicpm",
       "dataset": "longvideobench",
-      "method": "aks",
-      "nframes": 16,
-      "n": 1337,
-      "accuracy_percent": 57.44203440538519,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 57.44203440538519,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "longvideobench",
-      "method": "wfs",
-      "nframes": 16,
-      "n": 1337,
-      "accuracy_percent": 59.835452505609574,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 59.835452505609574,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "longvideobench",
       "method": "aps",
       "nframes": 16,
       "n": 1337,
       "accuracy_percent": 58.1151832460733,
       "metric": "accuracy",
       "micro_accuracy_percent": 58.1151832460733,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "longvideobench",
-      "method": "dig",
-      "nframes": 16,
-      "n": 1337,
-      "accuracy_percent": 57.142857142857146,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 57.142857142857146,
       "unparsed_answers": 0
     },
     {
@@ -400,45 +169,12 @@
     {
       "model": "minicpm",
       "dataset": "videomme",
-      "method": "aks",
-      "nframes": 16,
-      "n": 2700,
-      "accuracy_percent": 58.44444444444444,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 58.44444444444444,
-      "unparsed_answers": 4
-    },
-    {
-      "model": "minicpm",
-      "dataset": "videomme",
-      "method": "wfs",
-      "nframes": 16,
-      "n": 2700,
-      "accuracy_percent": 57.7037037037037,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 57.7037037037037,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "videomme",
       "method": "aps",
       "nframes": 16,
       "n": 2700,
       "accuracy_percent": 57.629629629629626,
       "metric": "accuracy",
       "micro_accuracy_percent": 57.629629629629626,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "videomme",
-      "method": "dig",
-      "nframes": 16,
-      "n": 2700,
-      "accuracy_percent": 57.55555555555556,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 57.55555555555556,
       "unparsed_answers": 0
     },
     {
@@ -455,28 +191,6 @@
     {
       "model": "minicpm",
       "dataset": "mlvu",
-      "method": "aks",
-      "nframes": 16,
-      "n": 2174,
-      "accuracy_percent": 57.10856763643427,
-      "metric": "macro",
-      "micro_accuracy_percent": 60.53357865685373,
-      "unparsed_answers": 126
-    },
-    {
-      "model": "minicpm",
-      "dataset": "mlvu",
-      "method": "wfs",
-      "nframes": 16,
-      "n": 2174,
-      "accuracy_percent": 58.807030635044555,
-      "metric": "macro",
-      "micro_accuracy_percent": 62.327506899724014,
-      "unparsed_answers": 114
-    },
-    {
-      "model": "minicpm",
-      "dataset": "mlvu",
       "method": "aps",
       "nframes": 16,
       "n": 2174,
@@ -484,314 +198,7 @@
       "metric": "macro",
       "micro_accuracy_percent": 61.82152713891444,
       "unparsed_answers": 135
-    },
-    {
-      "model": "minicpm",
-      "dataset": "mlvu",
-      "method": "dig",
-      "nframes": 16,
-      "n": 2174,
-      "accuracy_percent": 55.91476261097636,
-      "metric": "macro",
-      "micro_accuracy_percent": 59.29162833486661,
-      "unparsed_answers": 128
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "longvideobench",
-      "method": "focus",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 61.18175018698579,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 61.18175018698579,
-      "unparsed_answers": 7
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "videomme",
-      "method": "focus",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 60.370370370370374,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 60.370370370370374,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "mlvu",
-      "method": "focus",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 66.57039080317139,
-      "metric": "macro",
-      "micro_accuracy_percent": 67.98528058877645,
-      "unparsed_answers": 1
-    },
-    {
-      "model": "internvl",
-      "dataset": "longvideobench",
-      "method": "focus",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 61.63051608077786,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 61.63051608077786,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "videomme",
-      "method": "focus",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 63.925925925925924,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 63.925925925925924,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "mlvu",
-      "method": "focus",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 71.08499497021026,
-      "metric": "macro",
-      "micro_accuracy_percent": 72.67709291628334,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "longvideobench",
-      "method": "focus",
-      "nframes": 16,
-      "n": 1337,
-      "accuracy_percent": 58.1151832460733,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 58.1151832460733,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "videomme",
-      "method": "focus",
-      "nframes": 16,
-      "n": 2700,
-      "accuracy_percent": 54.851851851851855,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 54.851851851851855,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "mlvu",
-      "method": "focus",
-      "nframes": 16,
-      "n": 2174,
-      "accuracy_percent": 58.20746345793026,
-      "metric": "macro",
-      "micro_accuracy_percent": 61.453541858325664,
-      "unparsed_answers": 110
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "longvideobench",
-      "method": "qca",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 61.480927449513835,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 61.480927449513835,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "videomme",
-      "method": "qca",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 62.333333333333336,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 62.333333333333336,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "mlvu",
-      "method": "qca",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 65.35003574522977,
-      "metric": "macro",
-      "micro_accuracy_percent": 66.88132474701013,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "longvideobench",
-      "method": "qca",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 62.303664921465966,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 62.303664921465966,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "videomme",
-      "method": "qca",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 66.4074074074074,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 66.4074074074074,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "mlvu",
-      "method": "qca",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 73.3318327276243,
-      "metric": "macro",
-      "micro_accuracy_percent": 74.51701931922723,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "longvideobench",
-      "method": "qca",
-      "nframes": 16,
-      "n": 1337,
-      "accuracy_percent": 56.09573672400897,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 56.09573672400897,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "videomme",
-      "method": "qca",
-      "nframes": 16,
-      "n": 2700,
-      "accuracy_percent": 58.18518518518518,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 58.18518518518518,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "mlvu",
-      "method": "qca",
-      "nframes": 16,
-      "n": 2174,
-      "accuracy_percent": 57.685040573959796,
-      "metric": "macro",
-      "micro_accuracy_percent": 60.80956761729531,
-      "unparsed_answers": 113
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "longvideobench",
-      "method": "ridge",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 62.677636499626026,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 62.677636499626026,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "videomme",
-      "method": "ridge",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 62.44444444444444,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 62.44444444444444,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "qwen25vl",
-      "dataset": "mlvu",
-      "method": "ridge",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 67.32263013087565,
-      "metric": "macro",
-      "micro_accuracy_percent": 68.6752529898804,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "longvideobench",
-      "method": "ridge",
-      "nframes": 32,
-      "n": 1337,
-      "accuracy_percent": 62.45325355272999,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 62.45325355272999,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "videomme",
-      "method": "ridge",
-      "nframes": 32,
-      "n": 2700,
-      "accuracy_percent": 65.51851851851852,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 65.51851851851852,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "internvl",
-      "dataset": "mlvu",
-      "method": "ridge",
-      "nframes": 32,
-      "n": 2174,
-      "accuracy_percent": 74.00245739983443,
-      "metric": "macro",
-      "micro_accuracy_percent": 75.06899724011039,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "longvideobench",
-      "method": "ridge",
-      "nframes": 16,
-      "n": 1337,
-      "accuracy_percent": 57.890800299177265,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 57.890800299177265,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "videomme",
-      "method": "ridge",
-      "nframes": 16,
-      "n": 2700,
-      "accuracy_percent": 55.18518518518518,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 55.18518518518518,
-      "unparsed_answers": 0
-    },
-    {
-      "model": "minicpm",
-      "dataset": "mlvu",
-      "method": "ridge",
-      "nframes": 16,
-      "n": 2174,
-      "accuracy_percent": 56.076772948852586,
-      "metric": "macro",
-      "micro_accuracy_percent": 59.47562097516099,
-      "unparsed_answers": 117
     }
-  ]
+  ],
+  "scope": "APS and Uniform control only; other frame-selection methods are excluded."
 }

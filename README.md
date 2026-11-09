@@ -4,6 +4,8 @@ APS 面向长视频问答，在固定帧预算下根据问题相关性曲线选�
 
 历史实验代码、结果中的 `dps` 是同一个方法的旧名称；本仓库对外统一使用 **APS**。这里不包含训练流程，三个视觉语言模型均直接进行推理。
 
+仓库范围为 **APS 核心方法、消融实验及其复现工具**，默认只运行 APS。Uniform 仅用于均匀采样对照和候选帧不足时的回退；不包含其他选帧方法的实现、接入框架或运行配置。
+
 > 本仓库整理了实际实验算法、正式选帧和配置。历史结果来自 MetaX GPU / FlagOS。下文推理入口面向 **NVIDIA CUDA + 上游 vLLM**，已进行代码检查和 CPU 协议测试，尚未在 NVIDIA GPU 上完成端到端验证，不能把已有结果称为 NVIDIA 实测结果。
 
 ## 目录
@@ -80,7 +82,7 @@ python scripts/download_models.py --models qwen7b internvl minicpm
 
 已有模型可直接放入或链接到 `models/` 下相应目录。要固定具体模型修订，可使用下载脚本的 `--revision`；实际推理会记录模型配置哈希、权重文件元信息和依赖版本。
 
-APS **不需要 Qwen3-8B 辅助权重模型**；那属于 RIDGE 基线。本方法主表使用共享的 BLIP-ITM Large 相关性缓存。
+APS 主表使用共享的 BLIP-ITM Large 相关性缓存。
 
 ## 4. 数据与分数缓存
 
@@ -196,7 +198,7 @@ python -m aps.experiments --config configs/main_table.json \
 
 LVB、VideoMME 使用逐题准确率；**MLVU 主指标使用七任务准确率的宏平均**。不得把 MLVU 的 micro 数值放入同一张主表。
 
-历史 APS 结果如下，完整 8 种方法 × 9 组结果保存在 [reports/main_table.json](reports/main_table.json)。这些是已有国产卡实验的汇总，不是本次 NVIDIA 移植的测量结果。
+历史 APS 结果如下，[reports/main_table.json](reports/main_table.json) 仅保留 APS 和 Uniform 对照各九组汇总。其他选帧方法的结果不纳入本仓库。这些是已有国产卡实验的汇总，不是本次 NVIDIA 移植的测量结果。
 
 | 模型 | 帧数 | LVB | VideoMME | MLVU Macro |
 |---|---:|---:|---:|---:|
@@ -216,4 +218,4 @@ python -m build
 
 本目录可直接作为独立 Git 仓库。初始化及推送步骤见 [docs/release.md](docs/release.md)。项目论文题目、作者、引用信息和自有代码许可证应使用最终确认内容；没有虚构占位 DOI 或替你选择开源授权。
 
-第三方来源与现有版权声明见 [third_party/NOTICE.md](third_party/NOTICE.md)。其他选帧基线的方法仓库和对比口径见 [docs/baselines.md](docs/baselines.md)。
+第三方来源与现有版权声明见 [third_party/NOTICE.md](third_party/NOTICE.md)。数据文档中的历史目录名和来源引用只用于导入与溯源，不要求安装旧实验框架。

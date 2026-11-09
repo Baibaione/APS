@@ -19,7 +19,7 @@
   "selection_cli_verified_questions": 1337,
   "mlvu_conversion_roundtrip_questions": 2174,
   "historical_main_configurations": 9,
-  "published_main_aggregates": 72,
+  "published_main_aggregates": 18,
   "nvidia_dependency_resolution": {
     "platform": "Linux x86_64",
     "python": "3.11",
@@ -37,5 +37,6 @@
     "NVIDIA GPU smoke/full inference pending",
     "Fresh HF BLIP scoring not proven numerically identical to historical LAVIS caches",
     "Project license, final paper title/authors/citation remain to be chosen by the owner"
-  ]
+  ],
+  "repository_scope": "APS and its ablations; Uniform retained only as a control and short-video fallback."
 }
