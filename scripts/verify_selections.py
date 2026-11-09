@@ -29,7 +29,7 @@ def main():
         files={x:a.cache_root/ds/'blip'/f'{x}.json' for x in ['scores','frames']}
         for key,path in files.items():
             if sha(path)!=meta[key+'_sha256']:
-                raise ValueError(f'Historical cache mismatch: {ds}/{key}')
+                raise ValueError(f'Reference cache mismatch: {ds}/{key}')
         scores,frames=read(files['scores']),read(files['frames'])
         expected={k:read(root/f'assets/selections/{ds}/aps_k{k}.json') for k in [16,32]}
         if len(scores)!=len(frames) or len(scores)!=meta['questions']:

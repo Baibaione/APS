@@ -21,7 +21,8 @@ def main():
     p.add_argument("--budget", type=int, default=32)
     p.add_argument("--alpha", type=float, default=1.0)
     p.add_argument("--beta", type=float, required=True, help="Main table: LVB=.6; VideoMME/MLVU=.4")
-    p.add_argument("--penalty", type=float, default=.5)
+    p.add_argument("--eta", "--penalty", dest="penalty", type=float, default=.5,
+                   help="Complexity regularization strength eta (paper Eq. 8)")
     p.add_argument("--variant", default="full", choices=["full", "equal_length", "linear_only", "constant_only"])
     p.add_argument("--workers", type=int, default=1)
     p.add_argument("--details", action="store_true", help="Save per-question intervals and allocations")

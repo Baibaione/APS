@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 from aps import APSConfig, select_frames
 
-FIXTURES = json.loads((Path(__file__).parent/'fixtures/legacy_selector.json').read_text())
+FIXTURES = json.loads((Path(__file__).parent/'fixtures/reference_selector.json').read_text())
 
 
 @pytest.mark.parametrize('row', FIXTURES)
-def test_matches_frozen_experiment_outputs(row):
+def test_matches_reference_selections(row):
     assert select_frames(row['scores'], row['frames'], APSConfig(**row['config'])) == row['expected']
 
 

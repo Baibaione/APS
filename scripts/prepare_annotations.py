@@ -2,7 +2,7 @@
 """Validate/install canonical benchmark annotations, without rewriting questions.
 
 Accepts JSON or JSONL with the fields documented in docs/data.md. For arbitrary
-new data use --allow-new-protocol; historical selected frames then cannot be reused.
+new data use --allow-new-protocol; reference selected frames then cannot be reused.
 """
 import argparse
 import json
@@ -34,7 +34,7 @@ def main():
     expected = read(repo / 'assets/input_manifest.json')[a.dataset]
     if not a.allow_new_protocol:
         if sha(a.input) != expected['annotation_sha256']:
-            raise ValueError('Annotation differs from the historical snapshot. Use the original cache bundle, '
+            raise ValueError('Annotation differs from the reference snapshot. Use matching reference inputs, '
                              'or --allow-new-protocol and regenerate scores/selections. Do not mix protocols.')
     if a.output.exists():
         if read(a.output) != docs:

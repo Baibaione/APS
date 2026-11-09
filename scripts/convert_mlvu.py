@@ -3,7 +3,7 @@
 
 Match the recorded question/video order by hashes, without bundling question text.
 After conversion regenerate scores: serialization/source revisions can differ
-from the historical annotation snapshot.
+from the reference annotation snapshot.
 """
 import argparse
 import hashlib

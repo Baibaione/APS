@@ -1,57 +1,63 @@
-# Data and score caches
+# Data and relevance scores
 
-## Exact inputs from the historical experiments
+## Download benchmarks
 
-Use `python scripts/import_legacy.py --source /path/to/previous/AKS` to import an existing experiment directory. For each benchmark, the script copies only `include_frame_idx.json`, BLIP `scores.json`, and `frames.json`, and links local videos.
+Obtain videos and annotations from the dataset providers:
 
-The separately prepared `APS-reproduction-inputs.tar.gz` is a local backup outside the Git repository. If available, extract it and pass its `AKS/` directory to the same importer; videos must be obtained and linked separately. The archive contains historical annotations and relevance caches, but no model weights or videos. Any future distribution must retain the data provenance and comply with the applicable licenses; third-party data is not original APS code.
+| Benchmark | Source | Evaluation subset |
+|---|---|---|
+| LongVideoBench | [Official dataset](https://huggingface.co/datasets/longvideobench/LongVideoBench) | Validation, 1,337 questions |
+| Video-MME | [Dataset](https://huggingface.co/datasets/lmms-lab/Video-MME) | 2,700 multiple-choice questions, without subtitles |
+| MLVU | [Official dataset](https://huggingface.co/datasets/MLVU/MVLU) | Seven MCQ tasks, 2,174 questions |
 
-## Prepare data from public sources
-
-- [LongVideoBench](https://huggingface.co/datasets/longvideobench/LongVideoBench): obtain the validation annotations and corresponding videos.
-- [VideoMME](https://huggingface.co/datasets/lmms-lab/Video-MME): obtain the test annotations and videos. The historical protocol uses AKS's `include_frame_idx.json`; replacing it with another annotation version changes the protocol.
-- [Official MLVU data](https://huggingface.co/datasets/MLVU/MVLU): use the seven MCQ tasks, from `MLVU/json/1_plotQA.json` through `7_topic_reasoning.json`, and their videos. Open-ended generation tasks are excluded. Follow the provider's access and download requirements.
-- Historical annotation source: [ncTimTang/AKS](https://github.com/ncTimTang/AKS), revision `b0b8a58fedf1d05d78151e2969cecde60e83721d`. One historical LVB question differs from the original validation set, so the hashes recorded in this repository define the reference inputs.
-
-Organize the videos as follows:
+Model weights, videos, and full annotation/score caches are not included in this repository. Existing video downloads can be linked into the following layout:
 
 ```text
-data/longvideobench/videos/<video_path>
-data/videomme/videos/<videoID>.mp4
-data/mlvu/videos/1_plotQA/<video_name>
-data/mlvu/videos/2_needle/<video_name>
-... through 7_topic_reasoning/
+data/
+  longvideobench/questions.json
+  longvideobench/videos/<video_path>
+  videomme/questions.json
+  videomme/videos/<videoID>.mp4
+  mlvu/questions.json
+  mlvu/videos/1_plotQA/<video_name>
+  mlvu/videos/2_needle/<video_name>
+  ...
+cache/
+  <dataset>/blip/frames.json
+  <dataset>/blip/scores.json
 ```
 
-This repository does not automatically download full video datasets, allowing existing downloads to be reused.
+## Prepare annotations
 
-Convert the original MLVU JSON files:
+| Benchmark | ID | Video fields | Question and answer fields | Grouping fields |
+|---|---|---|---|---|
+| LVB | `id` | `video_path` | `question`, `candidates`, zero-based `correct_choice` | `duration_group`, `question_category` |
+| Video-MME | `question_id` | `videoID` without extension | `question`, labeled `options`, letter `answer` | `duration`, `domain`, `sub_category`, `task_type` |
+| MLVU | `question_id` | `video_relpath`, `video_name` | `question` including options, `candidates`, letter `answer` | `task_type` |
+
+Convert MLVU's seven MCQ JSON files, from `1_plotQA.json` through `7_topic_reasoning.json`:
 
 ```bash
 python scripts/convert_mlvu.py --json-dir /path/to/MLVU/json \
   --output data/mlvu/questions.json
 ```
 
-The converter reconstructs the reference question order using the recorded question-text hashes and video names. It fails if the source data changes rather than assuming row positions match. LVB/VideoMME use the historical evaluation JSON schemas. When exporting from Parquet, preserve the following fields and the question order:
+The converter reconstructs the reference question order using recorded question-text hashes and video names. It rejects changed source data rather than assuming that row positions match. Generation tasks are excluded.
 
-| Benchmark | ID | Video fields | Question/options/answer | Grouping fields |
-|---|---|---|---|---|
-| LVB | `id` | `video_path` | `question`, `candidates`, zero-based `correct_choice` | `duration_group`, `question_category` |
-| VideoMME | `question_id` | `videoID` without extension | `question`, `options` with A./B. labels, `answer` as a letter | `duration`, `domain`, `sub_category`, `task_type` |
-| MLVU | `question_id` | `video_relpath`, `video_name` | `question` including options, `candidates`, `answer` as a letter | `task_type` |
-
-Validate and install newly downloaded annotations:
+For LVB/Video-MME, use the evaluation JSON schema above and validate the annotation:
 
 ```bash
 python scripts/prepare_annotations.py --dataset longvideobench \
   --input /path/to/include_frame_idx.json --output data/longvideobench/questions.json
 ```
 
-To deliberately use a different annotation version, pass `--allow-new-protocol`. Then regenerate scores and selections; the reference selections and claims of exact reproduction no longer apply. Even a change in JSON serialization changes the file hash. Import the original bytes for exact reproduction.
+The reference annotation snapshot comes from [AKS, revision b0b8a58](https://github.com/ncTimTang/AKS/tree/b0b8a58fedf1d05d78151e2969cecde60e83721d/datasets). Input hashes are recorded in [`assets/input_manifest.json`](../assets/input_manifest.json). This snapshot includes one LVB question variant relative to the original validation annotations; use the matching snapshot to compare directly with the reference results.
 
-## Generate fresh scores
+For another annotation version, add `--allow-new-protocol` and regenerate scores and selections. Reference selections must not be mixed with changed questions or row orders. File hashes include JSON serialization, so preserve the original bytes when importing reference inputs.
 
-The scoring model is separate from the answering model. The three main-table models share one BLIP-ITM Large score cache. Encoder ablations change the scoring model while keeping the other selection parameters fixed. To generate fresh scores:
+## Generate relevance scores
+
+The scoring encoder is separate from the answering model. Main experiments share one BLIP-ITM Large score cache across all three answering models.
 
 ```bash
 python scripts/download_models.py --provider huggingface --models blip
@@ -67,12 +73,23 @@ python -m aps.score \
   --num-shards 1 --merge
 ```
 
-Answering models are downloaded from ModelScope by default; the scoring example explicitly selects their official Hugging Face repositories. If a ModelScope mirror or a local snapshot is already available, pass its local directory with `--model`. The scripts do not silently switch models or download providers.
+For multi-GPU scoring, launch shards with `--shard-id 0..N-1 --num-shards N`, assigning each process its own `CUDA_VISIBLE_DEVICES`. Keep model, annotations, shard count, and batch size fixed within one output directory. Merge after all shards finish; missing or duplicate questions are rejected.
 
-For multi-GPU scoring, launch shards with `--shard-id 0..N-1 --num-shards N`, assigning each process its own `CUDA_VISIBLE_DEVICES`. Keep shard count, batch size, model, and annotations fixed within an output directory. Run `--merge` after all shards complete; merging rejects missing or duplicate questions.
+Candidate indices are `j * int(fps)` for `j = 0..total_frames//int(fps)-1`. This approximates 1 FPS: at 29.97 FPS, the stride is 29 decoded frames, not exactly one second. Decoder frame counts and FPS must agree with any reused candidate cache.
 
-The candidate grid follows the historical implementation exactly: `stride=int(fps)` and candidate indices `j*stride` for `j=0..total_frames//stride-1`. This approximates one frame per second; a 29.97 FPS video uses stride 29, not exact one-second timestamps. Do not reuse a cache if decoding produces a different frame count or FPS.
+BLIP scoring uses `BlipForImageTextRetrieval`, FP32, 384×384 PIL bicubic resizing, CLIP normalization, 35-token text truncation, and positive-class ITM probability. MLVU scores are rounded to six decimals. The reference LVB/Video-MME caches use the AKS/LAVIS scoring implementation; fresh Hugging Face scores have not been verified as numerically identical for every frame. Use matching reference caches when exact selection reproduction is required.
 
-Fresh BLIP scoring uses HF `BlipForImageTextRetrieval`, FP32, 384×384 PIL bicubic resizing, CLIP mean/std normalization, 35-token text truncation, and the positive-class ITM probability. MLVU retains the historical six-decimal score rounding. Historical LVB/VideoMME caches came from the AKS/LAVIS pipeline. **Fresh HF scores have not been proven numerically equivalent to those caches on every frame.** Import the historical caches for exact reproduction; a matching model name alone does not justify replacing them.
+Encoder ablations use CLIP cosine similarity (`openai/clip-vit-base-patch32`) or BLIP-2 ITM probabilities (`Salesforce/blip2-itm-vit-g`, FP32, 32-token text truncation). All encoders use the same candidate grid. LVB/Video-MME scoring uses the question without appended answer candidates; MLVU's question field already includes options. See [ablations](ablations.md#scoring-encoder).
 
-CLIP uses image/text cosine similarity from `openai/clip-vit-base-patch32`. BLIP-2 uses `Salesforce/blip2-itm-vit-g`, positive-class ITM probabilities, FP32, and 32-token question truncation. Encoder ablations cover LVB/VideoMME only, without appending answer candidates to the question. MLVU already includes options in its `question` field; the scorer does not append them again.
+## Reuse matching caches
+
+If a reference input bundle is available in the `data/` and `cache/` layout above, import it with checksum validation:
+
+```bash
+python scripts/import_cache.py --source /path/to/reference-inputs
+python scripts/verify_selections.py --cache-root cache
+```
+
+The importer copies annotations and score/frame JSONs and links videos when present. For an AKS-format input bundle, use `--layout aks --source /path/to/AKS`. Importing caches does not require installing another frame-selection framework.
+
+The six files in `assets/selections/` cover three benchmarks at 16 and 32 frames. They contain original video frame indices in annotation order. They require matching annotation, score, and candidate hashes; they are not standalone video data.

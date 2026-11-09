@@ -1,7 +1,6 @@
-"""NVIDIA CUDA / upstream vLLM evaluator for the APS experiment protocol.
+"""Evaluate APS and Uniform frame selection with vLLM.
 
-Ported from the historical evaluator. GPU execution on NVIDIA is pending
-validation; see docs/reproducibility.md. No platform plugins are loaded.
+See docs/reproducibility.md for benchmark protocols and output metrics.
 """
 import argparse
 import ast
@@ -155,7 +154,7 @@ def author_functions(path, names):
 
 
 def native_resize(height, width):
-    """Historical Qwen preprocessing with qwen-vl-utils 0.0.8 smart_resize settings.
+    """Qwen preprocessing with qwen-vl-utils 0.0.8 smart_resize settings.
 
     max_pixels = original height*width; min_pixels = 128*28*28.
     The later HF processor has no spatial resize left to perform.
@@ -239,7 +238,10 @@ def summarize(run_dir):
     if set(records) != expected:
         missing, extra = expected - set(records), set(records) - expected
         raise ValueError(f'Evaluation incomplete; cannot report full accuracy: {len(missing)} missing records, {len(extra)} extra records')
-    out = {'questions': len(manifest['indices']), 'methods': {}}
+    metric = manifest.get('mlvu_metric', 'macro') if manifest['dataset'] == 'mlvu' else 'micro'
+    if metric not in ('micro', 'macro'):
+        raise ValueError(f'Unsupported MLVU metric: {metric}')
+    out = {'questions': len(manifest['indices']), 'main_table_metric': metric, 'methods': {}}
     for method in methods:
         rows = [records[(i, method)] for i in manifest['indices']]
         docs = read_json(manifest['annotation'])
@@ -270,7 +272,8 @@ def summarize(run_dir):
                 if len(task) != 7:
                     raise ValueError('MLVU requires seven tasks for full macro accuracy')
                 result['task_macro_accuracy_percent'] = sum(v['accuracy_percent'] for v in task.values()) / 7
-                result['main_table_accuracy_percent'] = result['task_macro_accuracy_percent']
+                if metric == 'macro':
+                    result['main_table_accuracy_percent'] = result['task_macro_accuracy_percent']
             else:
                 result['main_table_accuracy_percent'] = None
     if 'aps' in methods and 'uniform' in methods:
@@ -285,7 +288,7 @@ def summarize(run_dir):
         r = out['methods'][method]
         print(f"{method}: micro {r['correct']}/{r['n']} = {r['accuracy_percent']:.3f}%")
         if 'task_macro_accuracy_percent' in r:
-            print(f"{method}: MLVU main-table macro = {r['task_macro_accuracy_percent']:.3f}%")
+            print(f"{method}: MLVU task macro = {r['task_macro_accuracy_percent']:.3f}% (main-table metric: {metric})")
     if 'gain_percentage_points' in out:
         print(f"APS gain: {out['gain_percentage_points']:+.3f} percentage points")
     print('Results:', Path(run_dir) / 'summary.json')
@@ -411,6 +414,7 @@ def preflight(args):
     print(f'Peak visual tokens per prompt: {worst[0]} @ {worst[3]}', flush=True)
     config = {**paths, 'indices': indices, 'gpus': args.gpus.split(';'),
               'methods': args.methods.split(','),
+              'mlvu_metric': args.mlvu_metric,
               'group_fields': list(dscfg['group_fields']),
               'prompt_kwargs': dscfg['prompt_kwargs'],
               'nframes': nframes, 'max_model_len': args.max_model_len, 'seed': args.seed,
@@ -692,6 +696,8 @@ def main():
     parser.add_argument('--data-root', default='data')
     parser.add_argument('--model', default='models/Qwen2.5-VL-7B-Instruct')
     parser.add_argument('--dataset', choices=tuple(DATASETS), default='longvideobench')
+    parser.add_argument('--mlvu-metric', choices=('micro', 'macro'), default='micro',
+                        help='Main-table metric for MLVU; both micro and task macro are retained')
     parser.add_argument('--annotation', default='')
     parser.add_argument('--reference', default='')
     parser.add_argument('--video-root', default='')

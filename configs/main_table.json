@@ -1,4 +1,5 @@
 {
+  "description": "Three answering models across three benchmarks.",
   "jobs": [
     {
       "id": "qwen25vl_longvideobench",
@@ -18,8 +19,7 @@
         "aps"
       ],
       "seed": 0,
-      "tensor_parallel_size": 1,
-      "source_manifest_sha256": "0192dceb288a62f1168c098c22cc39d5a0f9d879d36ff05bc709b9b926b3b0ac"
+      "tensor_parallel_size": 1
     },
     {
       "id": "qwen25vl_videomme",
@@ -39,8 +39,7 @@
         "aps"
       ],
       "seed": 0,
-      "tensor_parallel_size": 1,
-      "source_manifest_sha256": "6c33bc85f6721801118215bf5ed9d4961eb5ac1a688923e74946cde6aa7d961f"
+      "tensor_parallel_size": 1
     },
     {
       "id": "qwen25vl_mlvu",
@@ -61,7 +60,7 @@
       ],
       "seed": 0,
       "tensor_parallel_size": 1,
-      "source_manifest_sha256": "a03db49cdf76a0ab1367a95d0dc7561385b3f12663e3c95cad8b8083f9e3651f"
+      "mlvu_metric": "micro"
     },
     {
       "id": "internvl_longvideobench",
@@ -81,8 +80,7 @@
         "aps"
       ],
       "seed": 0,
-      "tensor_parallel_size": 1,
-      "source_manifest_sha256": "fea1df1ae3844fc8cad9f1810d556aeca42d085e864b0c37dd7801a014e6c8fb"
+      "tensor_parallel_size": 1
     },
     {
       "id": "internvl_videomme",
@@ -102,8 +100,7 @@
         "aps"
       ],
       "seed": 0,
-      "tensor_parallel_size": 1,
-      "source_manifest_sha256": "24028b345a042d47175701b883857196b0fe4bd0a7c8d200dbb0941f9f4a7064"
+      "tensor_parallel_size": 1
     },
     {
       "id": "internvl_mlvu",
@@ -124,7 +121,7 @@
       ],
       "seed": 0,
       "tensor_parallel_size": 1,
-      "source_manifest_sha256": "3d9ee8e27589435248924c4afbdfa2017c436bf79351eeedd2350258662c3357"
+      "mlvu_metric": "micro"
     },
     {
       "id": "minicpm_longvideobench",
@@ -144,8 +141,7 @@
         "aps"
       ],
       "seed": 0,
-      "tensor_parallel_size": 1,
-      "source_manifest_sha256": "44076a939990b7bbcc30be122da37d0bb0ffc832dee4e64a540c625d537d54ca"
+      "tensor_parallel_size": 1
     },
     {
       "id": "minicpm_videomme",
@@ -165,8 +161,7 @@
         "aps"
       ],
       "seed": 0,
-      "tensor_parallel_size": 1,
-      "source_manifest_sha256": "160926707f4144a1b03a9a7a6e682a77f2bdb9597b4895e80499d5bf0699fa28"
+      "tensor_parallel_size": 1
     },
     {
       "id": "minicpm_mlvu",
@@ -187,7 +182,7 @@
       ],
       "seed": 0,
       "tensor_parallel_size": 1,
-      "source_manifest_sha256": "b24008c450102fd385b8b06f3aa94706599f467acf62b21e5ceefab8642b76c0"
+      "mlvu_metric": "micro"
     }
   ]
 }

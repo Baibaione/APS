@@ -10,7 +10,7 @@ from .io import read
 
 
 def identity(job):
-    return {k: v for k, v in job.items() if k not in ('id', 'axis', 'source_manifest_sha256', 'model_size')}
+    return {k: v for k, v in job.items() if k not in ('id', 'axis', 'model_size')}
 
 
 def commands(job, root, gpus, limit, methods=None):
@@ -26,12 +26,14 @@ def commands(job, root, gpus, limit, methods=None):
     select = [sys.executable, '-m', 'aps.select', '--scores', str(cache/'scores.json'), '--frames', str(cache/'frames.json'),
               '--annotation', str(root/f'data/{ds}/questions.json'), '--output', str(selection),
               '--budget', str(j['nframes']), '--alpha', str(j['alpha']), '--beta', str(j['beta']),
-              '--penalty', str(j['penalty']), '--variant', j['variant'], '--workers', '8']
+              '--eta', str(j['penalty']), '--variant', j['variant'], '--workers', '8']
     run = [sys.executable, '-m', 'aps.infer', 'run', '--dataset', ds, '--data-root', str(root/'data'),
            '--model', str(root/j['model_path']), '--candidates', str(cache/'frames.json'), '--selected', str(selection),
            '--methods', ','.join(j['methods']), '--gpus', gpus, '--tensor-parallel-size', str(j['tensor_parallel_size']),
            '--nframes', str(j['nframes']), '--max-model-len', str(j['max_model_len']), '--kv-cache-gib', str(j['kv_cache_gib']),
            '--seed', str(j['seed']), '--limit', str(limit), '--run-dir', str(output)]
+    if ds == 'mlvu':
+        run.extend(['--mlvu-metric', j.get('mlvu_metric', 'micro')])
     return [select, run] if 'aps' in j['methods'] else [run]
 
 

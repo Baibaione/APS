@@ -1,5 +1,5 @@
 {
-  "provenance": "Historical MetaX / FlagOS experiment results; not NVIDIA measurements.",
+  "description": "Reference APS and Uniform accuracies. All main-table columns use question-level micro accuracy.",
   "rows": [
     {
       "model": "qwen25vl",
@@ -7,10 +7,9 @@
       "method": "uniform",
       "nframes": 32,
       "n": 1337,
+      "correct": 775,
       "accuracy_percent": 57.96559461480928,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 57.96559461480928,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "qwen25vl",
@@ -18,10 +17,9 @@
       "method": "aps",
       "nframes": 32,
       "n": 1337,
+      "correct": 853,
       "accuracy_percent": 63.79955123410621,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 63.79955123410621,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "qwen25vl",
@@ -29,10 +27,9 @@
       "method": "uniform",
       "nframes": 32,
       "n": 2700,
+      "correct": 1613,
       "accuracy_percent": 59.74074074074074,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 59.74074074074074,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "qwen25vl",
@@ -40,10 +37,9 @@
       "method": "aps",
       "nframes": 32,
       "n": 2700,
+      "correct": 1683,
       "accuracy_percent": 62.333333333333336,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 62.333333333333336,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "qwen25vl",
@@ -51,10 +47,10 @@
       "method": "uniform",
       "nframes": 32,
       "n": 2174,
-      "accuracy_percent": 59.392754190708054,
-      "metric": "macro",
-      "micro_accuracy_percent": 60.67157313707452,
-      "unparsed_answers": 5
+      "correct": 1319,
+      "accuracy_percent": 60.67157313707452,
+      "metric": "micro",
+      "task_macro_accuracy_percent": 59.392754190708054
     },
     {
       "model": "qwen25vl",
@@ -62,10 +58,10 @@
       "method": "aps",
       "nframes": 32,
       "n": 2174,
-      "accuracy_percent": 68.05438989189487,
-      "metric": "macro",
-      "micro_accuracy_percent": 69.64121435142594,
-      "unparsed_answers": 0
+      "correct": 1514,
+      "accuracy_percent": 69.64121435142594,
+      "metric": "micro",
+      "task_macro_accuracy_percent": 68.05438989189487
     },
     {
       "model": "internvl",
@@ -73,10 +69,9 @@
       "method": "uniform",
       "nframes": 32,
       "n": 1337,
+      "correct": 793,
       "accuracy_percent": 59.31189229618549,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 59.31189229618549,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "internvl",
@@ -84,10 +79,9 @@
       "method": "aps",
       "nframes": 32,
       "n": 1337,
+      "correct": 850,
       "accuracy_percent": 63.575168287210175,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 63.575168287210175,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "internvl",
@@ -95,10 +89,9 @@
       "method": "uniform",
       "nframes": 32,
       "n": 2700,
+      "correct": 1745,
       "accuracy_percent": 64.62962962962963,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 64.62962962962963,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "internvl",
@@ -106,10 +99,9 @@
       "method": "aps",
       "nframes": 32,
       "n": 2700,
+      "correct": 1805,
       "accuracy_percent": 66.85185185185185,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 66.85185185185185,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "internvl",
@@ -117,10 +109,10 @@
       "method": "uniform",
       "nframes": 32,
       "n": 2174,
-      "accuracy_percent": 68.61765870401739,
-      "metric": "macro",
-      "micro_accuracy_percent": 70.1931922723091,
-      "unparsed_answers": 0
+      "correct": 1526,
+      "accuracy_percent": 70.1931922723091,
+      "metric": "micro",
+      "task_macro_accuracy_percent": 68.61765870401739
     },
     {
       "model": "internvl",
@@ -128,10 +120,10 @@
       "method": "aps",
       "nframes": 32,
       "n": 2174,
-      "accuracy_percent": 74.16679644368878,
-      "metric": "macro",
-      "micro_accuracy_percent": 75.20699172033119,
-      "unparsed_answers": 0
+      "correct": 1635,
+      "accuracy_percent": 75.20699172033119,
+      "metric": "micro",
+      "task_macro_accuracy_percent": 74.16679644368878
     },
     {
       "model": "minicpm",
@@ -139,10 +131,9 @@
       "method": "uniform",
       "nframes": 16,
       "n": 1337,
+      "correct": 727,
       "accuracy_percent": 54.3754674644727,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 54.3754674644727,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "minicpm",
@@ -150,10 +141,9 @@
       "method": "aps",
       "nframes": 16,
       "n": 1337,
+      "correct": 777,
       "accuracy_percent": 58.1151832460733,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 58.1151832460733,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "minicpm",
@@ -161,10 +151,9 @@
       "method": "uniform",
       "nframes": 16,
       "n": 2700,
+      "correct": 1522,
       "accuracy_percent": 56.370370370370374,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 56.370370370370374,
-      "unparsed_answers": 4
+      "metric": "micro"
     },
     {
       "model": "minicpm",
@@ -172,10 +161,9 @@
       "method": "aps",
       "nframes": 16,
       "n": 2700,
+      "correct": 1556,
       "accuracy_percent": 57.629629629629626,
-      "metric": "accuracy",
-      "micro_accuracy_percent": 57.629629629629626,
-      "unparsed_answers": 0
+      "metric": "micro"
     },
     {
       "model": "minicpm",
@@ -183,10 +171,10 @@
       "method": "uniform",
       "nframes": 16,
       "n": 2174,
-      "accuracy_percent": 50.63315719398653,
-      "metric": "macro",
-      "micro_accuracy_percent": 52.98988040478381,
-      "unparsed_answers": 119
+      "correct": 1152,
+      "accuracy_percent": 52.98988040478381,
+      "metric": "micro",
+      "task_macro_accuracy_percent": 50.63315719398653
     },
     {
       "model": "minicpm",
@@ -194,11 +182,10 @@
       "method": "aps",
       "nframes": 16,
       "n": 2174,
-      "accuracy_percent": 58.20965760241993,
-      "metric": "macro",
-      "micro_accuracy_percent": 61.82152713891444,
-      "unparsed_answers": 135
+      "correct": 1344,
+      "accuracy_percent": 61.82152713891444,
+      "metric": "micro",
+      "task_macro_accuracy_percent": 58.20965760241993
     }
-  ],
-  "scope": "APS and Uniform control only; other frame-selection methods are excluded."
+  ]
 }

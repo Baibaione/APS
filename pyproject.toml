@@ -5,11 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "aps-video"
 version = "0.1.0"
-description = "APS frame selection and reproducible long-video evaluation"
+description = "Adaptive partitioning-based frame selection for long video understanding"
 readme = "README.md"
 license-files = ["third_party/*.txt", "third_party/NOTICE.md"]
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24,<3"]
+
+[project.urls]
+Repository = "https://github.com/Baibaione/APS"
 
 [project.optional-dependencies]
 test = ["pytest>=8", "ruff>=0.9", "build>=1.2"]

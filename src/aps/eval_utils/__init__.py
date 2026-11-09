@@ -1,1 +1,1 @@
-"""Historical benchmark text and answer parsing protocol."""
+"""Benchmark prompt formatting and answer parsing."""

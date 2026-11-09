@@ -1,6 +1,6 @@
 """Question/frame scoring with BLIP, CLIP or BLIP-2 on CUDA.
 
-Cache reuse is preferred for exact historical reproduction; see docs/data.md.
+Cache reuse is preferred for reference selection reproduction; see docs/data.md.
 No answer field is passed to a scorer. MLVU's question already contains options.
 """
 import argparse
@@ -31,7 +31,7 @@ def candidate_grid(total, fps):
     stride = int(fps)
     grid = list(range(0, (total // stride) * stride, stride))
     if not grid:
-        raise ValueError('Video has no candidate frames under the historical grid')
+        raise ValueError('Video has no candidate frames under the candidate sampling grid')
     return grid
 
 

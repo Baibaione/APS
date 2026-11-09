@@ -24,7 +24,8 @@ def test_immutable_resume_manifest(tmp_path):
         manifest(path, {'alpha':1.5})
 
 
-def test_mlvu_macro_differs_from_micro_and_rejects_incomplete(tmp_path):
+@pytest.mark.parametrize('metric', ['micro', 'macro'])
+def test_mlvu_macro_differs_from_micro_and_rejects_incomplete(tmp_path, metric):
     counts = [200,206,352,355,259,539,263]
     docs, rows = [], []
     for task,n in enumerate(counts):
@@ -37,11 +38,13 @@ def test_mlvu_macro_differs_from_micro_and_rejects_incomplete(tmp_path):
                              unparsed_fallback=False, uniform_frame_fallback=False))
     write(tmp_path/'questions.json',docs)
     write(tmp_path/'manifest.json',dict(dataset='mlvu',annotation=str(tmp_path/'questions.json'),
-          indices=list(range(2174)),methods=['aps'],group_fields=['task_type']))
+          indices=list(range(2174)),methods=['aps'],group_fields=['task_type'],mlvu_metric=metric))
     result_path = tmp_path/'rank0.jsonl'
     result_path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
     result = summarize(tmp_path)['methods']['aps']
-    assert result['main_table_accuracy_percent'] == pytest.approx(100/7)
+    assert result['task_macro_accuracy_percent'] == pytest.approx(100/7)
+    expected = 100/7 if metric == 'macro' else 100*200/2174
+    assert result['main_table_accuracy_percent'] == pytest.approx(expected)
     assert result['accuracy_percent'] == pytest.approx(100*200/2174)
     result_path.write_text(''.join(json.dumps(r)+'\n' for r in rows[:-1]))
     with pytest.raises(ValueError, match='Evaluation incomplete'):
@@ -71,7 +74,7 @@ def test_main_matrix_and_gpu_commands(tmp_path):
         assert '--annotation' in cmds[0]
 
 
-def test_ablation_resource_settings_match_historical_manifests():
+def test_ablation_resource_settings():
     root = Path(__file__).resolve().parents[1]
     jobs = json.loads((root/'configs/ablations.json').read_text())['jobs']
     k64 = [j for j in jobs if j['axis']=='frames' and j['nframes']==64]
