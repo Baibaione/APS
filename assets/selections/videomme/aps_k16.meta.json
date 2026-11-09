@@ -1,0 +1,12 @@
+{
+  "questions": 2700,
+  "annotation_sha256": "cc02294caaebdc6f07d9a850c84d6cda5978609c1884c91adc3dbcec90deed44",
+  "scores_sha256": "7e0c9588c5293bead3e9c9f52ed64cf5c5d8a215b88c01328dc847ad244545ac",
+  "frames_sha256": "e307164a25c663a6243d20e5dd9adcbb00ed90e5dcfe402548c1dd666228eb44",
+  "budget": 16,
+  "method": "aps",
+  "alpha": 1.0,
+  "beta": 0.4,
+  "penalty": 0.5,
+  "selected_sha256": "7f3a45718f61dced90e0b3a0b3a4bbc6e5e64c4b1a53174284e8d8444387d1dd"
+}

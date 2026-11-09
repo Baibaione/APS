@@ -1,0 +1,20 @@
+{
+  "longvideobench": {
+    "questions": 1337,
+    "annotation_sha256": "33122a85561dd872c9bd2c7bc9124ed35e333029f85cd82a08120efe2fd23d7a",
+    "scores_sha256": "1abb68f9f371d5891050023a0250ed583457141c79fd3c9b37c9fdc3edb57475",
+    "frames_sha256": "d7b866856da7580553c8b3bb3334c4147297258737bed051192315164963debd"
+  },
+  "videomme": {
+    "questions": 2700,
+    "annotation_sha256": "cc02294caaebdc6f07d9a850c84d6cda5978609c1884c91adc3dbcec90deed44",
+    "scores_sha256": "7e0c9588c5293bead3e9c9f52ed64cf5c5d8a215b88c01328dc847ad244545ac",
+    "frames_sha256": "e307164a25c663a6243d20e5dd9adcbb00ed90e5dcfe402548c1dd666228eb44"
+  },
+  "mlvu": {
+    "questions": 2174,
+    "annotation_sha256": "392cc1711e3fa754409ed3ff123ac3658ab9592db13ccd4caebecffccad61642",
+    "scores_sha256": "38c2afad27fdef65c08ee772700b2784fc73be0cb76fe121567f29d50e3fbb54",
+    "frames_sha256": "f36794cb37de2024b029f251ff6d5ea1ae777581da51d5750b181371f11a8b5e"
+  }
+}
