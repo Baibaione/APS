@@ -4,7 +4,6 @@
 
 ### Adaptive Partitioning-Based Frame Selection<br>for Long Video Understanding
 
-**Training-free frame selection guided by query relevance and temporal structure.**
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](docs/installation.md) [![Method](https://img.shields.io/badge/Method-Training--free-17806D?style=flat-square)](docs/method.md) [![Benchmarks](https://img.shields.io/badge/Benchmarks-3-6C5AA7?style=flat-square)](#results) [![Tests](https://github.com/Baibaione/APS/actions/workflows/cpu-tests.yml/badge.svg)](https://github.com/Baibaione/APS/actions/workflows/cpu-tests.yml)
 
