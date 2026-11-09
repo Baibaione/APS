@@ -1,57 +1,57 @@
-# 数据与缓存
+# Data and score caches
 
-## 历史实验的精确输入
+## Exact inputs from the historical experiments
 
-推荐运行 `python scripts/import_legacy.py --source /path/to/previous/AKS`。脚本只导入每个数据集的 `include_frame_idx.json`、BLIP `scores.json`、`frames.json`，并链接本地视频。
+Use `python scripts/import_legacy.py --source /path/to/previous/AKS` to import an existing experiment directory. For each benchmark, the script copies only `include_frame_idx.json`, BLIP `scores.json`, and `frames.json`, and links local videos.
 
-整理交付的独立 `APS-reproduction-inputs.tar.gz` 是本地复现输入备份，放在仓库目录之外，不随代码提交。解压后可把其中的 `AKS/` 传给同一个导入脚本；视频需另行下载并链接。该包包含历史标注与相关性缓存，没有模型权重或视频。将来若要发布此包，应保留数据来源与适用许可，不能将第三方数据视为 APS 自有代码。
+The separately prepared `APS-reproduction-inputs.tar.gz` is a local backup outside the Git repository. If available, extract it and pass its `AKS/` directory to the same importer; videos must be obtained and linked separately. The archive contains historical annotations and relevance caches, but no model weights or videos. Any future distribution must retain the data provenance and comply with the applicable licenses; third-party data is not original APS code.
 
-## 从公开来源重新准备
+## Prepare data from public sources
 
-- [LongVideoBench](https://huggingface.co/datasets/longvideobench/LongVideoBench)：下载验证集标注及对应视频。
-- [VideoMME](https://huggingface.co/datasets/lmms-lab/Video-MME)：下载测试标注及视频。历史评测使用 AKS 的 `include_frame_idx.json`，不是随意换用另一个标注版本。
-- [MLVU 官方数据](https://huggingface.co/datasets/MLVU/MVLU)：使用 `MLVU/json/1_plotQA.json` 到 `7_topic_reasoning.json` 七个 MCQ 任务，以及对应视频文件；不包含开放式生成任务。获取权限和下载方式以数据提供方为准。
-- 历史 AKS 标注来源：[ncTimTang/AKS](https://github.com/ncTimTang/AKS)，历史代码修订 `b0b8a58fedf1d05d78151e2969cecde60e83721d`。LVB 历史标注与原始验证集有一题内容差异，因此以本仓库记录的哈希为准。
+- [LongVideoBench](https://huggingface.co/datasets/longvideobench/LongVideoBench): obtain the validation annotations and corresponding videos.
+- [VideoMME](https://huggingface.co/datasets/lmms-lab/Video-MME): obtain the test annotations and videos. The historical protocol uses AKS's `include_frame_idx.json`; replacing it with another annotation version changes the protocol.
+- [Official MLVU data](https://huggingface.co/datasets/MLVU/MVLU): use the seven MCQ tasks, from `MLVU/json/1_plotQA.json` through `7_topic_reasoning.json`, and their videos. Open-ended generation tasks are excluded. Follow the provider's access and download requirements.
+- Historical annotation source: [ncTimTang/AKS](https://github.com/ncTimTang/AKS), revision `b0b8a58fedf1d05d78151e2969cecde60e83721d`. One historical LVB question differs from the original validation set, so the hashes recorded in this repository define the reference inputs.
 
-下载后组织视频为：
+Organize the videos as follows:
 
 ```text
 data/longvideobench/videos/<video_path>
 data/videomme/videos/<videoID>.mp4
 data/mlvu/videos/1_plotQA/<video_name>
 data/mlvu/videos/2_needle/<video_name>
-... 直到 7_topic_reasoning/
+... through 7_topic_reasoning/
 ```
 
-本仓库不自动下载完整视频，避免把已经下载的数据再复制一份。
+This repository does not automatically download full video datasets, allowing existing downloads to be reused.
 
-MLVU 原始 JSON 转换：
+Convert the original MLVU JSON files:
 
 ```bash
 python scripts/convert_mlvu.py --json-dir /path/to/MLVU/json \
   --output data/mlvu/questions.json
 ```
 
-转换程序按照仓库中记录的问题文本哈希及视频名匹配到原问题顺序，若数据源发生变化则报错，不根据行号盲目拼接。LVB/VideoMME 接受原评测 JSON schema；从 parquet 导出时必须保留如下字段和问题顺序：
+The converter reconstructs the reference question order using the recorded question-text hashes and video names. It fails if the source data changes rather than assuming row positions match. LVB/VideoMME use the historical evaluation JSON schemas. When exporting from Parquet, preserve the following fields and the question order:
 
-| 数据集 | ID | 视频字段 | 问题/选项/答案 | 分组字段 |
+| Benchmark | ID | Video fields | Question/options/answer | Grouping fields |
 |---|---|---|---|---|
-| LVB | `id` | `video_path` | `question`, `candidates`, `correct_choice`（从 0 开始） | `duration_group`, `question_category` |
-| VideoMME | `question_id` | `videoID`（不带扩展名） | `question`, `options`（带 A./B. 等标签）, `answer`（字母） | `duration`, `domain`, `sub_category`, `task_type` |
-| MLVU | `question_id` | `video_relpath`, `video_name` | `question`（已含选项）, `candidates`, `answer`（字母） | `task_type` |
+| LVB | `id` | `video_path` | `question`, `candidates`, zero-based `correct_choice` | `duration_group`, `question_category` |
+| VideoMME | `question_id` | `videoID` without extension | `question`, `options` with A./B. labels, `answer` as a letter | `duration`, `domain`, `sub_category`, `task_type` |
+| MLVU | `question_id` | `video_relpath`, `video_name` | `question` including options, `candidates`, `answer` as a letter | `task_type` |
 
-检查/安装一个新下载的标注：
+Validate and install newly downloaded annotations:
 
 ```bash
 python scripts/prepare_annotations.py --dataset longvideobench \
   --input /path/to/include_frame_idx.json --output data/longvideobench/questions.json
 ```
 
-若确实选择不同标注版本，可使用 `--allow-new-protocol`；随后必须重新打分和选帧，不能复用正式选帧或宣称精确复现历史数字。即使只有 JSON 序列化改变，也会改变文件哈希；精确路径应直接导入原始字节。
+To deliberately use a different annotation version, pass `--allow-new-protocol`. Then regenerate scores and selections; the reference selections and claims of exact reproduction no longer apply. Even a change in JSON serialization changes the file hash. Import the original bytes for exact reproduction.
 
-## 重新打分
+## Generate fresh scores
 
-打分模型与答题模型独立。主表三个模型共用一份 BLIP-ITM Large 分数。编码器消融改变打分模型，其余选帧参数不变。需要重算分数时：
+The scoring model is separate from the answering model. The three main-table models share one BLIP-ITM Large score cache. Encoder ablations change the scoring model while keeping the other selection parameters fixed. To generate fresh scores:
 
 ```bash
 python scripts/download_models.py --provider huggingface --models blip
@@ -67,12 +67,12 @@ python -m aps.score \
   --num-shards 1 --merge
 ```
 
-答题模型默认 ModelScope 下载；打分模型这里显式使用其 Hugging Face 官方仓库。若已有 ModelScope 镜像或本地模型，直接给 `--model` 本地目录即可。脚本不会偷偷切换模型或下载来源。
+Answering models are downloaded from ModelScope by default; the scoring example explicitly selects their official Hugging Face repositories. If a ModelScope mirror or a local snapshot is already available, pass its local directory with `--model`. The scripts do not silently switch models or download providers.
 
-多卡打分可分别启动 `--shard-id 0..N-1 --num-shards N`，每个进程设置自己的 `CUDA_VISIBLE_DEVICES`。同一输出目录的分片总数、batch size、模型和标注保持不变；分片结束后执行 `--merge`，缺题或重复题时拒绝合并。
+For multi-GPU scoring, launch shards with `--shard-id 0..N-1 --num-shards N`, assigning each process its own `CUDA_VISIBLE_DEVICES`. Keep shard count, batch size, model, and annotations fixed within an output directory. Run `--merge` after all shards complete; merging rejects missing or duplicate questions.
 
-候选网格严格沿用历史实现：令 `stride=int(fps)`，候选为 `j*stride`，其中 `j=0..total_frames//stride-1`。这是近似每秒一帧；29.97 FPS 会用 stride=29，并不是精确时间戳 1 FPS。重新解码的视频如果总帧数或 FPS 不同，不得继续复用缓存。
+The candidate grid follows the historical implementation exactly: `stride=int(fps)` and candidate indices `j*stride` for `j=0..total_frames//stride-1`. This approximates one frame per second; a 29.97 FPS video uses stride 29, not exact one-second timestamps. Do not reuse a cache if decoding produces a different frame count or FPS.
 
-BLIP 重新打分入口基于 HF `BlipForImageTextRetrieval`、FP32、384×384 PIL bicubic、CLIP mean/std、35-token 文本截断和 ITM 正类概率。MLVU 的 BLIP 分数保留历史 6 位小数规则。LVB/VideoMME 的历史缓存由原先 AKS/LAVIS 路径得到；**HF 新打分与旧缓存没有逐帧数值等价证明**，要精确复现必须导入旧缓存。不能因为模型名称相同就覆盖历史缓存。
+Fresh BLIP scoring uses HF `BlipForImageTextRetrieval`, FP32, 384×384 PIL bicubic resizing, CLIP mean/std normalization, 35-token text truncation, and the positive-class ITM probability. MLVU retains the historical six-decimal score rounding. Historical LVB/VideoMME caches came from the AKS/LAVIS pipeline. **Fresh HF scores have not been proven numerically equivalent to those caches on every frame.** Import the historical caches for exact reproduction; a matching model name alone does not justify replacing them.
 
-CLIP 使用 `openai/clip-vit-base-patch32` 图文特征余弦相似度。BLIP-2 使用 `Salesforce/blip2-itm-vit-g`、ITM 正类概率、FP32、32-token 问题截断。编码器消融仅在 LVB/VideoMME 上运行，问题不追加候选答案；MLVU 本身的 `question` 字段已含候选，代码不会再次追加。
+CLIP uses image/text cosine similarity from `openai/clip-vit-base-patch32`. BLIP-2 uses `Salesforce/blip2-itm-vit-g`, positive-class ITM probabilities, FP32, and 32-token question truncation. Encoder ablations cover LVB/VideoMME only, without appending answer candidates to the question. MLVU already includes options in its `question` field; the scorer does not append them again.

@@ -44,7 +44,7 @@ def test_mlvu_macro_differs_from_micro_and_rejects_incomplete(tmp_path):
     assert result['main_table_accuracy_percent'] == pytest.approx(100/7)
     assert result['accuracy_percent'] == pytest.approx(100*200/2174)
     result_path.write_text(''.join(json.dumps(r)+'\n' for r in rows[:-1]))
-    with pytest.raises(ValueError, match='未完成'):
+    with pytest.raises(ValueError, match='Evaluation incomplete'):
         summarize(tmp_path)
 
 

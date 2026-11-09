@@ -1,18 +1,18 @@
-# 算法定义与历史实现对应
+# Algorithm and correspondence to the historical implementation
 
-APS 历史代码名是 DPS。整理后的 `kernels.py` 来自原实验的六个数值函数；`selector.py` 增加输入检查、统一参数入口、分区消融和审计输出。数学计算顺序、浮点公式与同分 tie-break 保留。
+APS was previously named DPS. `kernels.py` preserves the six numerical functions from the original experiments. `selector.py` adds input validation, a common parameter interface, partition ablations, and diagnostic output. Computation order, floating-point formulas, and tie-breaking are preserved.
 
-1. 原始分数逐题 min-max 到 [0,1]；极差小于 1e-12 时输出全零。
-2. 分区使用半径 h=2 的中心滑动平均，边缘按实际窗口长度平均。
-3. 噪声尺度从**未平滑**归一化分数的一阶差分估计：`sigma=max(1.4826*MAD(diff(x))/sqrt(2),0.03)`。
-4. 动态规划最小化所有区间的拟合残差与复杂度惩罚之和。区间 degree=d∈{0,1}，代价为 `SSE/(2*sigma^2) + (d+1)*0.5*log(max(N,2))*lambda`。
-5. 最小长度为 3。历史实现中 **80 的长度上限仅限制线性区间，常数区间没有最大长度**。这是复现保留的非对称约束。
-6. 同一终点先选择常数候选的最小代价，线性代价严格更小时才替换；相同代价优先较早的左边界。
-7. 分配使用**未平滑**分数的区间均值：`weight_j=(mean_j+1e-6)^alpha * length_j^beta`。预算足够时每段先给 1 帧，否则只给权重最大的 K 个区间；剩余预算按权重、整数配额与区间容量迭代分配。同权重优先较早区间。
-8. 每个区间按未平滑分数降序取 Top-K，同分优先较早候选；最终按时间排列并映射回原始视频帧编号。
+1. Apply per-question min-max normalization to the raw scores, yielding values in [0,1]. Return all zeros if the range is below 1e-12.
+2. For partitioning, use a centered moving average with radius h=2. At the boundaries, divide by the actual window length.
+3. Estimate the noise scale from first differences of the **unsmoothed** normalized scores: `sigma=max(1.4826*MAD(diff(x))/sqrt(2),0.03)`.
+4. Dynamic programming minimizes the sum of fitting residuals and complexity penalties over all segments. For degree d∈{0,1}, a segment costs `SSE/(2*sigma^2) + (d+1)*0.5*log(max(N,2))*lambda`.
+5. The minimum segment length is 3. In the historical implementation, **the maximum length of 80 applies only to linear segments; constant segments have no maximum length**. This asymmetric constraint is retained for reproduction.
+6. At each right endpoint, first choose the lowest-cost constant candidate. Replace it with a linear candidate only if the latter has strictly lower cost. Cost ties favor the earlier left boundary.
+7. Allocate using segment means of the **unsmoothed** scores: `weight_j=(mean_j+1e-6)^alpha * length_j^beta`. Assign one frame to every segment if the budget permits; otherwise assign one to each of the K highest-weight segments. Iteratively distribute the remaining budget using weights, integer quotas, and segment capacities. Weight ties favor earlier segments.
+8. Within each segment, take the highest unsmoothed scores, breaking ties by earlier candidate position. Sort the final selections temporally and map them back to original video frame indices.
 
-区间索引为 `[left,right)`，属于候选池位置，不是视频秒数。
+Segments use half-open intervals `[left,right)` over candidate positions, not video timestamps.
 
-候选数 N≤K 时返回全部候选。N<K 时，问答入口按照原模型 Uniform 规则从**整个原始视频**重新抽 K 帧，替换整组输入；N=K 不触发回退。不会用重复帧填充或仅补选缺少的若干帧。原始视频本身不足 K 帧时停止评测。
+If N≤K, return all N candidates. If N<K, the question-answering entry point replaces the entire input with K Uniform samples from the **whole original video**, using the answering model's sampling rule. N=K does not trigger this fallback. The implementation neither pads with repeated frames nor merely fills the unallocated slots. Evaluation stops if the original video itself has fewer than K frames.
 
-分区动态规划需要枚举左端点，总体为 O(N²) 时间；前缀统计、DP 和回溯状态为 O(N) 空间。正式的效率统计必须区分打分、分区、预算分配、区间内选择和模型答题，不能把历史硬件测量冒充 NVIDIA 测量。
+The partitioning DP enumerates left endpoints and takes O(N²) time. Prefix statistics, DP states, and backtracking use O(N) space. Efficiency measurements must distinguish scoring, partitioning, budget allocation, within-segment selection, and model inference. Historical hardware timings must not be presented as NVIDIA measurements.

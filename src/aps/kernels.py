@@ -31,8 +31,11 @@ def fast_costs(pref, r, lefts, degree):
     return np.where(n >= 2, np.maximum(0.0, syy - intercept * sy - slope * sxy), c)
 
 def partition(y, sigma, min_length=3, max_length=80, penalty_scale=0.5):
-    """带惩罚的最优分段：degree-0（常数拟合）代价 + base，degree-1（线性拟合）
-        代价 + 2*base，仅线性拟合受 max_length 上限约束，DP 求全局最优。"""
+    """Find the globally optimal penalized partition with dynamic programming.
+
+    Add base to degree-0 (constant) costs and 2*base to degree-1 (linear)
+    costs. Only linear segments are constrained by max_length.
+    """
     n, pref = (len(y), prefix_statistics(y))
     dp = np.full(n + 1, np.inf)
     dp[0] = 0.0
@@ -63,8 +66,12 @@ def partition(y, sigma, min_length=3, max_length=80, penalty_scale=0.5):
     return intervals[::-1]
 
 def allocate_budget(intervals, x, budget, alpha=1.0, beta=0.5):
-    """段预算分配：权重 = 段均值^alpha * 段长^beta；每段保底1帧（预算够时），
-        剩余按权重水线填充，容量受段长约束，装不下的自然再分配。"""
+    """Allocate frames using weights (segment_mean + 1e-6)^alpha * length^beta.
+
+    Reserve one frame per segment when the budget permits, then distribute
+    the remaining budget proportionally, respecting each segment's capacity
+    and redistributing any excess.
+    """
     means = np.array([np.mean(x[l:r]) for l, r in intervals])
     lengths = np.array([r - l for l, r in intervals], dtype=int)
     weights = (means + 1e-06) ** alpha * lengths.astype(float) ** beta

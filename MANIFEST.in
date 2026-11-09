@@ -1,4 +1,4 @@
-include README.md requirements-nvidia*.txt
+include README.md README.zh-CN.md requirements-nvidia*.txt
 recursive-include configs *.json
 recursive-include assets *.json
 recursive-include docs *.md

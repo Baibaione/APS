@@ -1,14 +1,14 @@
-# 本地仓库与后续发布
+# Local repository and release preparation
 
-代码整理目录已与旧服务器实验目录分离。不要对旧目录直接执行 `git add .`，其中可能包含模型、数据、机器配置和运行凭据。
+This repository is separate from the original server experiment directory. Do not run `git add .` in that old directory: it may contain models, data, machine settings, and runtime credentials.
 
-本目录提交内容：APS 数值内核、受控消融、打分/推理入口、评测协议、配置、正式选帧、必要的题目身份哈希、脱敏聚合指标、测试与说明。
+Versioned content includes APS numerical kernels, controlled ablations, scoring/inference entry points, evaluation protocols, configurations, reference selections, question-identity hashes, sanitized aggregate metrics, tests, and documentation. `README.md` is the English entry point; `README.zh-CN.md` provides the Chinese version. Detailed documentation and code comments use English.
 
-方法范围限定为 APS；Uniform 作为消融对照和短视频回退保留。主表配置默认只运行 APS，不收录其他选帧方法的实现、接入框架、运行配置或结果汇总。历史数据来源引用和必要的第三方许可仍予保留。
+The method scope is APS. Uniform is retained as an ablation control and short-video fallback. Main-table configurations run APS by default. Implementations, integration frameworks, run configurations, and aggregate results for other selection methods are excluded. Historical data references and required third-party licenses are retained.
 
-不提交：模型权重、完整数据集、视频/案例帧截图、BLIP 大缓存、原始响应、机器 IP、SSH 配置、API Key、容器快照、失败重试日志。独立复现输入包位于仓库外，可作为个人备份；后续是否作为 Release 资源发布，应按数据来源许可处理。
+Excluded content includes model weights, full datasets, videos and case-study screenshots, large BLIP caches, raw responses, machine IP addresses, SSH configuration, API keys, container snapshots, and retry logs. A separate reproduction-input archive may be kept outside the repository as a personal backup. Any future release of that archive must follow the source data's licenses.
 
-先本地检查：
+Run local checks:
 
 ```bash
 python -m pip install -e '.[test]'
@@ -18,31 +18,31 @@ python scripts/check_release.py
 python -m build
 ```
 
-初始化并查看待提交文件（若已经初始化则直接从 `git status` 开始）：
+Initialize and inspect the files to be committed. If the repository is already initialized, start with `git status`:
 
 ```bash
 git init -b main
 git status --short
-git add README.md pyproject.toml MANIFEST.in requirements-nvidia*.txt .gitignore .github src configs assets reports scripts examples tests docs third_party
+git add README.md README.zh-CN.md pyproject.toml MANIFEST.in requirements-nvidia*.txt .gitignore .github src configs assets reports scripts examples tests docs third_party
 git diff --cached --stat
 git diff --cached --check
 git commit -m "Prepare APS research code and reproduction protocol"
 ```
 
-在 GitHub 建立空的**私有仓库**后，使用你自己的仓库地址：
+After creating an empty **private** GitHub repository, use its URL:
 
 ```bash
 git remote add origin <YOUR_PRIVATE_REPOSITORY_URL>
 git push -u origin main
 ```
 
-远端仓库保持 Private；正式开源时再单独调整可见性。
+Keep the remote private until a public release is intended.
 
-公开前的未定项目：
+Items remaining before public release:
 
-1. 填入最终论文标题、作者和正式 BibTeX；没有使用虚构题目或 DOI。
-2. 为自有代码确定项目 LICENSE；当前只保留第三方许可，不假定你已授权采用 MIT/Apache。
-3. 在目标 NVIDIA GPU 上运行九组小样本 smoke，记录 GPU、驱动、依赖和显存；把成功验证的环境锁定后再宣称支持。
-4. 明确区分历史 MetaX 测量和后来 NVIDIA 测量，尤其是推理效率。
+1. Supply the final paper title, authors, and BibTeX entry; no placeholder DOI or invented citation is included.
+2. Choose a project license for the original code. Only third-party licenses are currently retained; no MIT/Apache grant for APS is assumed.
+3. Run small GPU smoke tests for all nine model/benchmark combinations on NVIDIA hardware. Record the GPU, driver, dependencies, and memory usage, then pin the validated environment.
+4. Distinguish historical MetaX results from later NVIDIA measurements, particularly for inference efficiency.
 
-`check_release.py` 是目录体检，不是完整密钥扫描器；它不输出匹配到的敏感内容。实际 GitHub 公开前仍应查看待提交 diff。
+`check_release.py` checks the release directory but is not a comprehensive secret scanner. It does not print matched sensitive content. Review the staged diff before making the repository public.

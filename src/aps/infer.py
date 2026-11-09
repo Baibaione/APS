@@ -51,7 +51,7 @@ DATASETS = {
         'gold_of': lambda doc: doc['answer'],
         'check_answer': lambda doc: doc['answer'] in tuple('ABCDEFGH'),
     },
-    # MLVU dev 集（lmms-eval 协议）：7 个 MCQ 任务共 2174 题，question 内嵌 "(A) 选项"，answer 为字母
+    # MLVU dev (lmms-eval protocol): 2,174 questions in seven MCQ tasks; options are embedded in question and answer is a letter.
     'mlvu': {
         'data_dir': 'datasets/mlvu', 'video_subdir': 'videos',
         'annotation': 'include_frame_idx.json', 'reference': 'mlvu.json',
@@ -70,18 +70,18 @@ DATASETS = {
 
 
 def as_int_frames(rows):
-    """VideoMME 的缓存帧网格/选帧是浮点（如 29.0），统一归一化为 int。"""
+    """Normalize cached VideoMME frame indices (e.g., 29.0) to integers."""
     return [[int(round(x)) for x in row] for row in rows]
 
 
-# 模型类型：与数据集正交，从模型 config.json 的 architectures 自动识别
+# Model types are independent of the dataset and inferred from config.json architectures.
 MODEL_TYPES = {
     'qwen2vl': {'nframes': 32},
-    # InternVL 系列：每帧 vllm 强制 resize 到 448×448 单 tile，256 token/帧；
-    # uniform 用官方 get_index 居中采样（与 lmms-eval internvl 一致）
+    # InternVL: vLLM resizes each frame to a single 448x448 tile, with 256 tokens per frame.
+    # Uniform follows the official get_index center sampling, as in lmms-eval InternVL.
     'internvl': {'nframes': 32, 'frame_size': 448, 'tokens_per_frame': 256},
-    # MiniCPM-V-4：视频 = 16 张图像列表 + 空格分隔占位符（BPE 合词防护），
-    # 每帧动态切 tile，tokens_per_frame 为估算上限
+    # MiniCPM-V-4: a video is a list of 16 images with space-separated placeholders to prevent BPE merging.
+    # Each frame is tiled dynamically; tokens_per_frame is an estimated upper bound.
     'minicpmv': {'nframes': 16, 'frame_size': 448, 'tokens_per_frame': 128},
 }
 ARCH_TO_MODEL_TYPE = {
@@ -96,7 +96,7 @@ def detect_model_type(model_path):
     cfg = json.loads((Path(model_path) / 'config.json').read_text())
     arch = (cfg.get('architectures') or [''])[0]
     if arch not in ARCH_TO_MODEL_TYPE:
-        raise ValueError(f'不支持的模型架构: {arch}（支持: {", ".join(ARCH_TO_MODEL_TYPE)}）')
+        raise ValueError(f'Unsupported model architecture: {arch} (supported: {", ".join(ARCH_TO_MODEL_TYPE)})')
     return ARCH_TO_MODEL_TYPE[arch]
 
 
@@ -112,15 +112,16 @@ def build_prompt(model_type, processor, text):
             {'role': 'user', 'content': [{'type': 'video'}, {'type': 'text', 'text': text}]}],
             tokenize=False, add_generation_prompt=True)
     if model_type == 'internvl':
+        # Preserve the original Chinese system prompt as part of the evaluation protocol.
         return ("<|im_start|>system\n"
                 "你是书生·万象，英文名是InternVL，是由上海人工智能实验室、清华大学及多家合作单位联合开发的多模态大语言模型。<|im_end|>\n"
                 "<|im_start|>user\n<video>\n" + text + "<|im_end|>\n"
                 "<|im_start|>assistant\n")
     if model_type == 'minicpmv':
-        # MiniCPM 视频 = 16 张图像 + 空格分隔占位符（BPE 合词防护）
-        # build_prompt 里 nframes 通过 processor 未知，这里由 worker 在调用前处理好占位符；
-        # 为简化，直接返回带空格占位符的文本（worker 按 nframes 在 text 前拼好）
-        return text  # minicpmv 的占位符由 worker 单独拼
+        # MiniCPM uses 16 images with space-separated placeholders to prevent BPE merging.
+        # The processor does not provide nframes here; the worker builds the placeholders.
+        # Return the text unchanged; the worker constructs the complete MiniCPM prompt.
+        return text  # MiniCPM placeholders are constructed in the worker.
     raise ValueError(f'Unsupported answering model type: {model_type}')
 
 
@@ -146,7 +147,7 @@ def author_functions(path, names):
     tree = ast.parse(Path(path).read_text())
     nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
     if {n.name for n in nodes} != set(names):
-        raise ValueError(f'作者 utils.py 中缺少函数: {path}')
+        raise ValueError(f'Required functions are missing from the reference utilities: {path}')
     module = ast.Module(body=nodes, type_ignores=[])
     env = {'np': np, 'random': random, 're': re}
     exec(compile(ast.fix_missing_locations(module), str(path), 'exec'), env)
@@ -161,7 +162,7 @@ def native_resize(height, width):
     """
     factor, min_pixels, max_pixels = 28, 128 * 28 * 28, height * width
     if height <= 0 or width <= 0 or max(height, width) / min(height, width) > 200:
-        raise ValueError(f'无效视频尺寸 {height}x{width}')
+        raise ValueError(f'Invalid video dimensions: {height}x{width}')
     rh = max(factor, round(height / factor) * factor)
     rw = max(factor, round(width / factor) * factor)
     if rh * rw > max_pixels:
@@ -171,7 +172,7 @@ def native_resize(height, width):
         beta = math.sqrt(min_pixels / (height * width))
         rh, rw = math.ceil(height * beta / factor) * factor, math.ceil(width * beta / factor) * factor
     if min(rh, rw) <= 0:
-        raise ValueError(f'预处理尺寸无效: {rh}x{rw}')
+        raise ValueError(f'Invalid preprocessed dimensions: {rh}x{rw}')
     return rh, rw
 
 
@@ -181,9 +182,9 @@ def assigned(indices, rank, world):
 
 def validate_selected(indices, total_frames):
     if not indices or any(type(i) is not int or i < 0 or i >= total_frames for i in indices):
-        raise ValueError(f'APS 帧编号越界或无效; 视频帧数={total_frames}, indices={indices[:8]}')
+        raise ValueError(f'Invalid or out-of-range APS frame indices; total_frames={total_frames}, indices={indices[:8]}')
     if indices != sorted(set(indices)):
-        raise ValueError('APS 帧编号必须按时间排序且没有重复')
+        raise ValueError('APS frame indices must be sorted in temporal order and contain no duplicates')
 
 
 def check_annotation_identity(docs, reference, dscfg):
@@ -193,12 +194,12 @@ def check_annotation_identity(docs, reference, dscfg):
     evaluation input. Record those differences instead of mixing two versions.
     """
     if len(docs) != len(reference):
-        raise ValueError(f'作者标注与下载标注数量不匹配: {len(docs)} vs {len(reference)}')
+        raise ValueError(f'Reference and downloaded annotation counts differ: {len(docs)} vs {len(reference)}')
     differences = []
     for i, (doc, other) in enumerate(zip(docs, reference)):
         for key in dscfg['strict_keys']:
             if doc[key] != other[key]:
-                raise ValueError(f'下载数据与作者标注的题目/视频顺序不一致: index={i}, field={key}')
+                raise ValueError(f'Downloaded data and reference annotations have different question/video ordering: index={i}, field={key}')
         fields = [key for key in dscfg['diff_keys']
                   if doc[key] != other[key]]
         if fields:
@@ -215,7 +216,7 @@ def load_results(run_dir, repair_tail=False, rank=None):
         data = path.read_bytes()
         if data and not data.endswith(b'\n'):
             if not repair_tail:
-                raise ValueError(f'结果文件含中断时的未完成行: {path}')
+                raise ValueError(f'Result file contains an incomplete line left by an interrupted write: {path}')
             data = data[:data.rfind(b'\n') + 1]
             path.write_bytes(data)
         for line in data.splitlines():
@@ -224,7 +225,7 @@ def load_results(run_dir, repair_tail=False, rank=None):
                 continue
             key = (r['index'], r['method'])
             if key in records:
-                raise ValueError(f'重复预测: {key}, {path}')
+                raise ValueError(f'Duplicate prediction: {key}, {path}')
             records[key] = r
     return records
 
@@ -237,7 +238,7 @@ def summarize(run_dir):
     records = load_results(run_dir)
     if set(records) != expected:
         missing, extra = expected - set(records), set(records) - expected
-        raise ValueError(f'评测未完成，不能报告完整准确率: 缺少{len(missing)}条，多出{len(extra)}条')
+        raise ValueError(f'Evaluation incomplete; cannot report full accuracy: {len(missing)} missing records, {len(extra)} extra records')
     out = {'questions': len(manifest['indices']), 'methods': {}}
     for method in methods:
         rows = [records[(i, method)] for i in manifest['indices']]
@@ -286,8 +287,8 @@ def summarize(run_dir):
         if 'task_macro_accuracy_percent' in r:
             print(f"{method}: MLVU main-table macro = {r['task_macro_accuracy_percent']:.3f}%")
     if 'gain_percentage_points' in out:
-        print(f"APS 增益: {out['gain_percentage_points']:+.3f} 个百分点")
-    print('结果:', Path(run_dir) / 'summary.json')
+        print(f"APS gain: {out['gain_percentage_points']:+.3f} percentage points")
+    print('Results:', Path(run_dir) / 'summary.json')
     return out
 
 
@@ -343,21 +344,21 @@ def preflight(args):
         candidates = as_int_frames(candidates)
     if len(docs) != dscfg['n_questions'] or len(reference) != len(docs) or len(candidates) != len(docs) \
             or any(len(s) != len(docs) for s in selections.values()):
-        raise ValueError(f'作者标注/下载标注/选帧/候选帧数量不匹配: '
+        raise ValueError(f'Reference annotations/downloaded annotations/selections/candidate counts do not match: '
                          f'{[len(docs),len(reference),len(candidates)]+[len(s) for s in selections.values()]}')
     if len({d[dscfg['id_key']] for d in docs}) != len(docs):
-        raise ValueError('题目 ID 重复')
+        raise ValueError('Duplicate question IDs')
     annotation_differences = check_annotation_identity(docs, reference, dscfg)
-    print('评测标注: 作者任务配置指定的', paths['annotation'], flush=True)
+    print('Evaluation annotations specified by the reference task configuration:', paths['annotation'], flush=True)
     if annotation_differences:
-        print(f'下载的 {dscfg["reference"]} 与作者标注有 {len(annotation_differences)} 题内容不同；本次统一使用作者标注。', flush=True)
-        print('差异示例:', annotation_differences[:10], flush=True)
+        print(f'Downloaded {dscfg["reference"]} differs from the reference annotations in {len(annotation_differences)} questions; using the reference annotations throughout.', flush=True)
+        print('Example differences:', annotation_differences[:10], flush=True)
     for doc in docs:
         video = Path(paths['video_root']) / (doc[dscfg['video_key']] + dscfg['video_suffix'])
         if not video.is_file() or video.stat().st_size == 0:
-            raise FileNotFoundError(f'视频缺失或为空: {video}')
+            raise FileNotFoundError(f'Video is missing or empty: {video}')
         if not dscfg['check_answer'](doc):
-            raise ValueError(f'正确答案无效: {doc[dscfg["id_key"]]}')
+            raise ValueError(f'Invalid ground-truth answer: {doc[dscfg["id_key"]]}')
     count = min(args.limit or len(docs), len(docs))
     indices = list(range(count))
     processor = AutoProcessor.from_pretrained(paths['model'], local_files_only=True,
@@ -375,25 +376,25 @@ def preflight(args):
             if paths['model_type'] == 'qwen2vl':
                 rh, rw = native_resize(height, width)
             else:
-                # InternVL / MiniCPM 的图像处理器使用各自的 frame_size。
+                # InternVL / MiniCPM image processors use their respective frame_size values.
                 rh = rw = mcfg['frame_size']
             metadata[name] = {'total_frames': len(vr), 'fps': float(vr.get_avg_fps()),
                               'height': height, 'width': width, 'resized_height': rh, 'resized_width': rw}
             del vr
         info = metadata[name]
         if not math.isfinite(info['fps']) or int(info['fps']) < 1:
-            raise ValueError(f'无法读取有效视频帧率: {name}, fps={info["fps"]}')
+            raise ValueError(f'Cannot read a valid video frame rate: {name}, fps={info["fps"]}')
         if info['total_frames'] < nframes:
-            raise ValueError(f'视频少于{nframes}原始帧，无法对齐作者设置: {name}')
+            raise ValueError(f'Video has fewer than {nframes} original frames and cannot satisfy the reference settings: {name}')
         expected_candidates = list(range(0, (info['total_frames'] // int(info['fps'])) * int(info['fps']), int(info['fps'])))
         if candidates[i] != expected_candidates:
-            raise ValueError(f'视频与作者 BLIP 缓存的帧网格不一致: {name}; 当前帧数={info["total_frames"]}, fps={info["fps"]:.5f}, 缓存候选帧数={len(candidates[i])}。不要继续使用错位缓存。')
+            raise ValueError(f'Video frame grid does not match the reference BLIP cache: {name}; total_frames={info["total_frames"]}, fps={info["fps"]:.5f}, cached_candidates={len(candidates[i])}. Do not reuse a misaligned cache.')
         for m, sel in selections.items():
             validate_selected(sel[i], info['total_frames'])
             if len(sel[i]) != min(nframes, len(candidates[i])):
                 raise ValueError('Selected frame count does not match the requested budget')
             if not set(sel[i]).issubset(set(candidates[i])):
-                raise ValueError(f'选帧结果({m})不属于对应题目的候选帧: {docs[i][dscfg["id_key"]]}')
+                raise ValueError(f'Selected frames ({m}) are not a subset of the candidates for question: {docs[i][dscfg["id_key"]]}')
         text = functions[dscfg['doc_to_text']](docs[i], dscfg['prompt_kwargs'])
         prompt = build_prompt(paths['model_type'], processor, text)
         if paths['model_type'] == 'qwen2vl':
@@ -402,12 +403,12 @@ def preflight(args):
             vision_tokens = mcfg['tokens_per_frame'] * nframes
         total_tokens = vision_tokens + len(processor.tokenizer.encode(prompt) if hasattr(processor, 'tokenizer') else processor.encode(prompt)) + dscfg['max_tokens']
         if total_tokens > args.max_model_len:
-            raise ValueError(f'{name}: 预计上下文 {total_tokens} 超过 {args.max_model_len}。脚本不会自动降分辨率改变评测设置。')
+            raise ValueError(f'{name}: estimated context length {total_tokens} exceeds {args.max_model_len}. Resolution will not be reduced automatically because that would change the evaluation protocol.')
         if worst is None or vision_tokens > worst[0]:
             worst = (vision_tokens, info['resized_height'], info['resized_width'], name)
         if done % 100 == 0:
-            print(f'视频/帧编号检查 {done}/{count}', flush=True)
-    print(f'视觉token峰值(单prompt): {worst[0]} @ {worst[3]}', flush=True)
+            print(f'Video/frame-index checks: {done}/{count}', flush=True)
+    print(f'Peak visual tokens per prompt: {worst[0]} @ {worst[3]}', flush=True)
     config = {**paths, 'indices': indices, 'gpus': args.gpus.split(';'),
               'methods': args.methods.split(','),
               'group_fields': list(dscfg['group_fields']),
@@ -427,8 +428,8 @@ def preflight(args):
                                         if (Path(paths['model']) / 'preprocessor_config.json').is_file() else '',
               'runner_hash': sha(__file__),
               'weights': {p.name: [p.stat().st_size,p.stat().st_mtime_ns] for p in sorted(Path(paths['model']).glob('*.safetensors'))}}
-    print(f'检查通过: {args.dataset} 验证集{len(docs)}题; 本次{count}题; 原生分辨率预处理; 无字幕; {nframes}帧; 方法: {args.methods}', flush=True)
-    print('每卡题数:', [len(assigned(indices,r,len(config['gpus']))) for r in range(len(config['gpus']))], flush=True)
+    print(f'Preflight passed: {args.dataset}, {len(docs)} validation questions; {count} requested; native-resolution preprocessing; no subtitles; {nframes} frames; methods: {args.methods}', flush=True)
+    print('Questions per GPU group:', [len(assigned(indices,r,len(config['gpus']))) for r in range(len(config['gpus']))], flush=True)
     return config
 
 
@@ -457,9 +458,9 @@ def worker(run_dir, rank):
     done = load_results(run_dir, rank=rank)
     pending = [(i,m) for i in indices for m in methods_all if (i,m) not in done]
     if not pending:
-        print(f'GPU {cfg["gpus"][rank]} 已完成本分片，无需加载模型', flush=True)
+        print(f'GPU {cfg["gpus"][rank]} has completed its shard; model loading is unnecessary', flush=True)
         return
-    print(f'GPU {cfg["gpus"][rank]}: {len(indices)}道题，待推理{len(pending)}次', flush=True)
+    print(f'GPU {cfg["gpus"][rank]}: {len(indices)} questions, {len(pending)} pending inference requests', flush=True)
     if torch.cuda.device_count() != cfg['tensor_parallel_size']:
         raise RuntimeError('Visible GPUs do not match tensor_parallel_size')
     processor = AutoProcessor.from_pretrained(cfg['model'], local_files_only=True,
@@ -468,22 +469,22 @@ def worker(run_dir, rank):
     mcfg = MODEL_TYPES[model_type]
     nframes = cfg.get('nframes', mcfg['nframes'])
     if model_type == 'internvl':
-        mm_kwargs = {}  # InternVLImageProcessor 不接受 do_sample_frames/do_resize 等参数
+        mm_kwargs = {}  # InternVLImageProcessor does not accept do_sample_frames/do_resize.
     elif model_type == 'minicpmv':
-        mm_kwargs = {}  # MiniCPM 图像处理器也不接受 do_sample_frames
+        mm_kwargs = {}  # The MiniCPM image processor does not accept do_sample_frames either.
     elif model_type == 'qwen2vl':
         mm_kwargs = {'do_resize': False, 'do_sample_frames': False,
-                     # 仅影响 vLLM 启动时的 encoder cache 预算推导
-                     # （_MAX_FRAMES_PER_VIDEO=14 → 7×max_pixels/784 = 126700 token）；
-                     # do_resize=False 使实际推理仍用原生分辨率，不改变评测协议。
-                     # MLVU 竖屏视频原生 32 帧峰值 126464 token，默认预算 114688 会被拒；
-                     # cells 上限受 max_model_len=127800 约束（7×cells ≤ 127800）。
+                     # This only affects encoder-cache budget estimation during vLLM startup.
+                     # (_MAX_FRAMES_PER_VIDEO=14 -> 7*max_pixels/784 = 126700 tokens).
+                     # do_resize=False preserves native resolution during actual inference.
+                     # Native 32-frame MLVU portrait videos peak at 126464 tokens, exceeding the default budget of 114688.
+                     # The cell limit is constrained by max_model_len=127800 (7*cells <= 127800).
                      'max_pixels': 14190400}
     else:
         raise ValueError(f'Unsupported answering model type: {model_type}')
-    trc = model_type in ('internvl', 'minicpmv')  # 这些仓库带 trust_remote_code 自定义代码
+    trc = model_type in ('internvl', 'minicpmv')  # These model repositories require custom code via trust_remote_code.
     if model_type == 'minicpmv':
-        # MiniCPM 视频按 16 张图像喂，不走 vllm 的视频通道
+        # MiniCPM receives 16 images instead of using the vLLM video input channel.
         limit_mm = {'image': nframes, 'video': 0}
     else:
         limit_mm = {'image': 0, 'video': {'count': 1, 'num_frames': nframes,
@@ -511,9 +512,9 @@ def worker(run_dir, rank):
             try:
                 vr = decord.VideoReader(str(video_path), ctx=decord.cpu(0), num_threads=1)
                 if len(vr) < nframes:
-                    raise ValueError(f'视频少于{nframes}原始帧，无法对齐作者nframes设置')
+                    raise ValueError(f'Video has fewer than {nframes} original frames and cannot satisfy the reference frame budget')
                 if model_type in ('internvl', 'minicpmv'):
-                    # InternVL/MiniCPM 居中分段采样（[0, n-1] 分 nframes 段取每段中点）
+                    # InternVL/MiniCPM sample the centers of nframes equal temporal segments.
                     seg = len(vr) / nframes
                     uniform = [int(seg / 2 + round(seg * k)) for k in range(nframes)]
                 else:
@@ -521,7 +522,7 @@ def worker(run_dir, rank):
                 info = cfg['metadata'][name]
                 text = functions[dscfg['doc_to_text']](doc, cfg.get('prompt_kwargs', dscfg['prompt_kwargs']))
                 if model_type == 'minicpmv':
-                    # MiniCPM 视频：16 张图像 + 空格分隔占位符（BPE 合词防护）
+                    # MiniCPM video: 16 images with space-separated placeholders to prevent BPE merging.
                     img_tokens = ' '.join(['(<image>./</image>)'] * nframes)
                     prompt = (f'<|im_start|>user\n {img_tokens} {text}<|im_end|>\n'
                               f'<|im_start|>assistant\n')
@@ -533,11 +534,11 @@ def worker(run_dir, rank):
                         fallback, frame_idx = False, uniform
                     else:
                         sel_i = selections[method][i]
-                        # 候选不足预算时，以整段视频的均匀采样替换整组输入。
+                        # When candidates are fewer than the budget, replace the entire input with whole-video Uniform samples.
                         fallback = len(sel_i) < nframes and len(candidates[i]) < nframes
                         frame_idx = uniform if fallback else sorted(sel_i[:nframes])
-                    # decord 在个别视频尾部取帧偶发 EOF 失败（同一视频其他分片可读），
-                    # 重建 VideoReader 重试，避免整轮评测被一道题拖死
+                    # Decord can intermittently fail near the end of a video even when other shards can read it.
+                    # Recreate VideoReader and retry decoding before failing the evaluation.
                     for decode_attempt in range(4):
                         try:
                             raw = vr.get_batch(frame_idx).asnumpy()
@@ -545,17 +546,17 @@ def worker(run_dir, rank):
                         except decord.DECORDError:
                             if decode_attempt == 3:
                                 raise
-                            print(f'rank={rank} index={i} method={method}: 解码失败，'
-                                  f'重建reader重试({decode_attempt+1}/3)', flush=True)
+                            print(f'rank={rank} index={i} method={method}: decoding failed; '
+                                  f'recreating VideoReader for retry ({decode_attempt+1}/3)', flush=True)
                             del vr
                             time.sleep(5 * (decode_attempt + 1))
                             vr = decord.VideoReader(str(video_path), ctx=decord.cpu(0), num_threads=1)
                     if model_type == 'internvl':
-                        # InternVL 由 vLLM 的 InternVLVideoProcessor 做 448 单 tile，
-                        # 需传 uint8 原始帧（PIL.fromarray 不接受 float32）
+                        # InternVLVideoProcessor in vLLM produces a single 448x448 tile.
+                        # Pass raw uint8 frames; PIL.fromarray does not accept float32 RGB arrays.
                         frames = raw
                     elif model_type == 'minicpmv':
-                        # MiniCPM：uint8 原始帧转 PIL 图像列表（由官方 processor 动态切 tile）
+                        # MiniCPM: convert raw uint8 frames to PIL images; its processor handles dynamic tiling.
                         from PIL import Image
                         frames = [Image.fromarray(raw[k]) for k in range(len(raw))]
                     else:
@@ -575,7 +576,7 @@ def worker(run_dir, rank):
                         pred = functions['parse_multi_choice_response'](response, choices, mapping)
                         unparsed = random.getstate() != before
                     else:
-                        # extract_characters_regex 是纯函数，无随机兜底；解析失败返回空串
+                        # extract_characters_regex is pure: no random fallback; parsing failure returns an empty string.
                         pred = functions['extract_characters_regex'](response)
                         unparsed = (pred == '')
                     gold = dscfg['gold_of'](doc)
@@ -597,7 +598,7 @@ def worker(run_dir, rank):
             except Exception as exc:
                 out.write(json.dumps({'status':'error','index':i,'id':doc[dscfg['id_key']],'error':repr(exc)},ensure_ascii=False)+'\n')
                 raise
-    print(f'分片 rank={rank} 完成', flush=True)
+    print(f'Shard rank={rank} completed', flush=True)
 
 
 def stop_children(children):
@@ -626,20 +627,20 @@ def launch(args):
     try:
         fcntl.flock(lock,fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        raise RuntimeError(f'此结果目录已有任务运行: {run_dir}')
+        raise RuntimeError(f'An evaluation is already running in this output directory: {run_dir}')
     cfg = preflight(args)
     manifest = run_dir / 'manifest.json'
     if manifest.exists():
         if read_json(manifest) != cfg:
-            raise ValueError('此目录的参数/数据/代码/模型与上次不同。使用新的 --run-dir，避免混合结果。')
+            raise ValueError('Parameters/data/code/model differ from the existing run. Use a new --run-dir to avoid mixing results.')
     else:
         if list(run_dir.glob('rank*.jsonl')):
-            raise ValueError('结果目录有预测但没有manifest，不能安全续跑')
+            raise ValueError('Predictions exist without a manifest; safe resumption is not possible')
         write_json(manifest,cfg)
     existing = load_results(run_dir, repair_tail=True)
     expected = {(i,m) for i in cfg['indices'] for m in cfg['methods']}
     if not set(existing).issubset(expected):
-        raise ValueError('结果目录包含本次评测范围之外的预测')
+        raise ValueError('The output directory contains predictions outside the scope of this evaluation')
     if set(existing) == expected:
         return summarize(run_dir)
     children, handles = [], []
@@ -662,20 +663,20 @@ def launch(args):
                                      env=env, stdout=handle, stderr=subprocess.STDOUT,
                                      start_new_session=True)
             children.append(proc)
-            print(f'已启动 GPU={gpu} rank={rank} pid={proc.pid}; 日志={run_dir / f"rank{rank}.log"}',flush=True)
+            print(f'Started GPU={gpu} rank={rank} pid={proc.pid}; log={run_dir / f"rank{rank}.log"}',flush=True)
         last = 0
         while any(p.poll() is None for p in children):
             for rank,p in enumerate(children):
                 if p.poll() not in (None,0):
-                    raise RuntimeError(f'rank={rank} 退出码={p.returncode}，请查看 {run_dir / f"rank{rank}.log"}；已保存的预测可续跑')
+                    raise RuntimeError(f'rank={rank} exited with code {p.returncode}; see {run_dir / f"rank{rank}.log"}. Saved predictions can be resumed.')
             if time.monotonic()-last>=30:
                 count = sum(p.read_bytes().count(b'\n') for p in run_dir.glob('rank*.jsonl'))
-                print(f'预测记录 {count}/{len(expected)}; 完成进程 {sum(p.poll()==0 for p in children)}/{len(children)}',flush=True)
+                print(f'Prediction records: {count}/{len(expected)}; completed workers: {sum(p.poll()==0 for p in children)}/{len(children)}',flush=True)
                 last=time.monotonic()
             time.sleep(1)
         failed = [r for r,p in enumerate(children) if p.returncode != 0]
         if failed:
-            raise RuntimeError(f'失败分片: {failed}')
+            raise RuntimeError(f'Failed shards: {failed}')
         summarize(run_dir)
     finally:
         stop_children(children)
@@ -734,7 +735,7 @@ if __name__=='__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print('已中断，已完成预测保留；相同命令可继续。',file=sys.stderr)
+        print('Interrupted. Completed predictions are preserved; rerun the same command to resume.',file=sys.stderr)
         sys.exit(130)
     except Exception:
         traceback.print_exc()

@@ -1,32 +1,36 @@
 # APS
 
-APS 面向长视频问答，在固定帧预算下根据问题相关性曲线选择视频帧。流程为：**相关性打分 → 自适应区间划分（COMPS）→ 区间预算分配 → 区间内 Top-K → 视频问答评测**。
+**English** | [Chinese](README.zh-CN.md)
 
-历史实验代码、结果中的 `dps` 是同一个方法的旧名称；本仓库对外统一使用 **APS**。这里不包含训练流程，三个视觉语言模型均直接进行推理。
+APS selects video frames for long-video question answering under a fixed frame budget, using a question-conditioned relevance curve:
 
-仓库范围为 **APS 核心方法、消融实验及其复现工具**，默认只运行 APS。Uniform 仅用于均匀采样对照和候选帧不足时的回退；不包含其他选帧方法的实现、接入框架或运行配置。
+**Relevance scoring → adaptive temporal partitioning (COMPS) → budget allocation → within-segment Top-K selection → video question answering.**
 
-> 本仓库整理了实际实验算法、正式选帧和配置。历史结果来自 MetaX GPU / FlagOS。下文推理入口面向 **NVIDIA CUDA + 上游 vLLM**，已进行代码检查和 CPU 协议测试，尚未在 NVIDIA GPU 上完成端到端验证，不能把已有结果称为 NVIDIA 实测结果。
+The historical method key `dps` refers to the same method, now named **APS**. This repository contains inference experiments; none of the three answering models is trained here.
 
-## 目录
+The repository covers **APS, its ablations, and reproduction tools**. APS is the default method. Uniform sampling is retained as an ablation control and as the fallback when the candidate pool is smaller than the frame budget. Implementations, integration frameworks, and run configurations for other frame-selection methods are excluded.
+
+> Historical results were obtained on MetaX GPUs with FlagOS. The inference entry point below targets **NVIDIA CUDA and upstream vLLM**. Code checks and CPU protocol tests have passed, but end-to-end NVIDIA inference has not yet been validated. The reported historical results are not NVIDIA measurements.
+
+## Repository layout
 
 ```text
-src/aps/                 APS 算法、打分、NVIDIA 推理、指标与实验调度
-configs/main_table.json  三个模型 × 三个数据集的主表配置
-configs/ablations.json   参数、编码器、规模、帧数、区间划分和惩罚系数消融
-assets/selections/       6 份正式 APS 选帧：3 个数据集 × 16/32 帧
-assets/question_ids/     正式评测问题顺序，不包含问题正文和答案
-assets/question_manifest/  视频名与问题哈希，用于核对问题身份
-assets/input_manifest.json  历史标注、分数和候选帧的 SHA-256
-reports/                脱敏后的结果、源文件哈希和验证记录
-scripts/                模型下载、数据导入、MLVU 转换、发布目录检查
-examples/               无模型、无数据依赖的 CPU 示例
-third_party/            第三方代码来源与许可证
+src/aps/                    APS, scoring, NVIDIA inference, metrics, and scheduling
+configs/main_table.json     Main experiments: three models × three benchmarks
+configs/ablations.json      Parameter, encoder, size, frame, partition, and penalty ablations
+assets/selections/          Six reference APS selections: three benchmarks × 16/32 frames
+assets/question_ids/        Reference question order, without question text or answers
+assets/question_manifest/  Video identifiers and question hashes for identity checks
+assets/input_manifest.json SHA-256 hashes of historical annotations, scores, and candidates
+reports/                   Sanitized aggregate results, source hashes, and validation records
+scripts/                   Model downloads, data import, MLVU conversion, and release checks
+examples/                  CPU example requiring no models or benchmark data
+third_party/               Third-party provenance and licenses
 ```
 
-模型权重、视频、完整数据集、打分缓存、原始预测和运行日志不进入 Git。打分缓存可从已有实验导入，也可按下述步骤重新生成。
+Model weights, videos, full datasets, score caches, raw predictions, and runtime logs are excluded from Git. Score caches can be imported from existing experiments or generated using the instructions below.
 
-## 1. 先运行 CPU 示例
+## 1. Run the CPU example
 
 ```bash
 python -m venv .venv
@@ -36,21 +40,21 @@ python examples/quickstart.py
 pytest -q
 ```
 
-最小使用方式：
+Minimal API usage:
 
 ```python
 from aps import APSConfig, select_frames
 
 selected = select_frames(
-    scores,                # 一题的候选帧相关性分数，按时间排列
-    original_frame_ids,    # 对应的原始视频帧编号，不是秒数
+    scores,                # Candidate relevance scores for one question, in temporal order
+    original_frame_ids,    # Original video frame indices, not timestamps
     APSConfig(budget=32, alpha=1.0, beta=0.6, penalty=0.5),
 )
 ```
 
-## 2. NVIDIA 推理环境
+## 2. Set up NVIDIA inference
 
-建议使用 Linux x86_64、Python 3.11，以及支持 BF16 的 NVIDIA GPU。先确认 `nvidia-smi` 正常。使用全新环境，让 vLLM 安装匹配的 CUDA PyTorch；不要从原国产卡容器复制 torch、Triton 或平台插件。
+Use Linux x86_64, Python 3.11, and an NVIDIA GPU with BF16 support. Check that `nvidia-smi` works. Create a fresh environment and let vLLM install its compatible CUDA PyTorch dependencies; do not copy PyTorch, Triton, or platform plugins from the original MetaX container.
 
 ```bash
 conda create -n aps-nvidia python=3.11 -y
@@ -62,39 +66,39 @@ python -m pip check
 python -c "import torch; print(torch.__version__, torch.version.cuda); print(torch.cuda.get_device_name(0))"
 ```
 
-固定候选环境：上游 `vllm==0.20.2`、`transformers==4.57.1`、`decord==0.6.0`。`requirements-nvidia.txt` 是直接依赖，`requirements-nvidia-lock.txt` 已按 Linux x86_64 / Python 3.11 解析并锁定 189 个依赖。这是供 NVIDIA 验证的依赖组合，不是原 FlagOS 环境的版本锁文件，也不代表 GPU 运行验证。CUDA 驱动须满足所安装 PyTorch/vLLM wheel 的要求，见 [vLLM GPU 安装说明](https://docs.vllm.ai/en/latest/getting_started/installation/gpu/)。
+The candidate environment pins upstream `vllm==0.20.2`, `transformers==4.57.1`, and `decord==0.6.0`. Direct dependencies are listed in `requirements-nvidia.txt`; `requirements-nvidia-lock.txt` contains 189 dependencies resolved for Linux x86_64 / Python 3.11. This is a dependency set for NVIDIA validation, not the original FlagOS environment or evidence of GPU runtime compatibility. The installed driver must meet the requirements of the PyTorch/vLLM wheels; see the [vLLM GPU installation guide](https://docs.vllm.ai/en/latest/getting_started/installation/gpu/).
 
-Qwen 的历史协议保留视频原生分辨率，MLVU 的最大上下文设为 127,800，显存需求明显高于其他组合。遇到显存不足时使用更大显存 GPU 或显式张量并行；**不要通过静默降分辨率或少取帧来获得表面可运行的主表结果**。详见 [推理与复现口径](docs/reproducibility.md)。
+The historical Qwen protocol preserves native video resolution. Qwen–MLVU uses a maximum context length of 127,800 and requires substantially more memory than the other combinations. Use a GPU with more memory or explicit tensor parallelism if needed. **Reducing resolution or frame count changes the evaluation protocol.** See [evaluation and reproducibility](docs/reproducibility.md).
 
-## 3. 下载三个答题模型
+## 3. Download the three answering models
 
-默认从 ModelScope 下载：
+ModelScope is the default download provider:
 
 ```bash
 python scripts/download_models.py --models qwen7b internvl minicpm
 ```
 
-| 模型别名 | 答题模型 | 主表帧数 |
+| Model alias | Answering model | Main-table frames |
 |---|---|---:|
 | qwen25vl | Qwen2.5-VL-7B-Instruct | 32 |
 | internvl | InternVL3-8B | 32 |
 | minicpm | MiniCPM-V-4 | 16 |
 
-已有模型可直接放入或链接到 `models/` 下相应目录。要固定具体模型修订，可使用下载脚本的 `--revision`；实际推理会记录模型配置哈希、权重文件元信息和依赖版本。
+Existing model snapshots can be placed or linked under the corresponding `models/` directories. Use the download script's `--revision` option to pin a model revision. Inference records model configuration hashes, weight-file metadata, and dependency versions.
 
-APS 主表使用共享的 BLIP-ITM Large 相关性缓存。
+The APS main experiments share BLIP-ITM Large relevance scores.
 
-## 4. 数据与分数缓存
+## 4. Prepare data and score caches
 
-正式协议是 LongVideoBench 1,337 题、VideoMME 2,700 题、MLVU 七个选择题任务共 2,174 题，均不输入字幕。
+The reference protocol uses 1,337 LongVideoBench questions, 2,700 VideoMME questions, and 2,174 questions across the seven MLVU multiple-choice tasks. Subtitles are not supplied to the models.
 
-如果已有历史实验目录，直接导入，可保持标注、问题顺序和浮点分数完全一致：
+If the historical experiment directory is available, import it to preserve the exact annotations, question order, and floating-point scores:
 
 ```bash
 python scripts/import_legacy.py --source /path/to/previous/AKS
 ```
 
-目录如下：
+The resulting layout is:
 
 ```text
 data/<dataset>/questions.json
@@ -103,13 +107,13 @@ cache/<dataset>/blip/scores.json
 cache/<dataset>/blip/frames.json
 ```
 
-`<dataset>` 为 `longvideobench`、`videomme`、`mlvu`。视频目录只创建链接，不复制完整视频。输入导入会校验历史 SHA-256；哈希不匹配时停止。
+`<dataset>` is `longvideobench`, `videomme`, or `mlvu`. Video directories are linked rather than copied. The importer verifies historical SHA-256 hashes and stops on a mismatch.
 
-从零准备数据、MLVU 转换以及重新打分见 **[数据准备文档](docs/data.md)**。复用选帧必须同时匹配标注、问题顺序、候选帧和视频解码网格；不能只根据题目数量判断缓存可用。
+See **[data preparation](docs/data.md)** for public data sources, MLVU conversion, and fresh scoring. Reusing selections requires matching annotations, question order, candidate frames, and the decoded video frame grid. Matching the question count alone is insufficient.
 
-## 5. APS 选帧
+## 5. Select frames with APS
 
-以 LVB、32 帧为例：
+For LongVideoBench with a 32-frame budget:
 
 ```bash
 python -m aps.select \
@@ -121,21 +125,21 @@ python -m aps.select \
   --workers 8 --details
 ```
 
-`--details` 额外保存分区边界、每区预算和候选位置，便于案例可视化。主表参数如下：
+`--details` also saves partition boundaries, per-segment budgets, and candidate positions for inspection and visualization. The main-table parameters are:
 
-| 数据集 | α | β | λ | 平滑半径 | 最小区间长度 | 线性区间最大长度 |
+| Benchmark | α | β | λ | Smoothing radius | Minimum segment length | Maximum linear segment length |
 |---|---:|---:|---:|---:|---:|---:|
 | LVB | 1.0 | 0.6 | 0.5 | 2 | 3 | 80 |
 | VideoMME | 1.0 | 0.4 | 0.5 | 2 | 3 | 80 |
 | MLVU | 1.0 | 0.4 | 0.5 | 2 | 3 | 80 |
 
-Qwen 和 InternVL 使用相同分数及参数，复用 32 帧选帧；MiniCPM 使用 16 帧选帧。因此主表为 **6 份选帧、9 组 APS 答题评测**。
+Qwen and InternVL share scores, parameters, and 32-frame selections. MiniCPM uses 16-frame selections. Thus, the main table requires **six selection files and nine APS question-answering evaluations**.
 
-导入历史缓存后，可用 `python scripts/verify_selections.py --workers 8` 重做全部 12,422 次选帧比对。本次整理的验证记录见 `reports/selector_parity.json`。
+After importing the historical caches, run `python scripts/verify_selections.py --workers 8` to repeat all 12,422 selection comparisons. The recorded validation is in `reports/selector_parity.json`.
 
-## 6. 运行单组推理
+## 6. Run one evaluation
 
-先预检查，再跑少量题，最后全量运行。以下使用仓库中的正式 LVB 选帧。
+Run preflight checks, then a small GPU smoke test, and finally the full benchmark. This example uses the reference LongVideoBench selections:
 
 ```bash
 python -m aps.infer check \
@@ -153,62 +157,62 @@ python -m aps.infer run \
   --run-dir outputs/qwen_lvb_smoke
 ```
 
-预检查解码所选范围的视频并检查帧网格，不加载大模型权重。推理前会加载 processor；`check` 不能替代 GPU 冒烟测试。全量运行移除 `--limit 8`，并换成独立的 `--run-dir outputs/qwen_lvb_full`。
+Preflight checks decode videos in the requested question range and verify frame grids without loading the answering-model weights. They do load the processor, and `check` does not replace a GPU smoke test. For a full run, remove `--limit 8` and use a separate directory such as `--run-dir outputs/qwen_lvb_full`.
 
-多 GPU 数据并行：`--gpus '0;1;2;3'`，每张卡独立加载模型、处理不同题目。双卡张量并行：`--gpus '0,1' --tensor-parallel-size 2`；两组双卡：`--gpus '0,1;2,3' --tensor-parallel-size 2`。引号不可省略。
+Use `--gpus '0;1;2;3'` for data parallelism, with an independent model replica and question shard on each GPU. For two-GPU tensor parallelism, use `--gpus '0,1' --tensor-parallel-size 2`; for two such groups, use `--gpus '0,1;2,3' --tensor-parallel-size 2`. Keep the GPU-group string quoted.
 
-结果位于 `--run-dir`：`manifest.json`、`rank*.jsonl`、`rank*.log`、`summary.json`。重新运行**相同命令**即可恢复；参数、分片数或输入变化时须使用新目录，防止混入旧结果。
+Outputs under `--run-dir` include `manifest.json`, `rank*.jsonl`, `rank*.log`, and `summary.json`. Rerun the **same command** to resume. Use a new output directory when parameters, shard counts, or inputs change.
 
-## 7. 主表九组实验
+## 7. Run the nine main experiments
 
-先输出启动计划（不使用 GPU）：
+Print the execution plan without using GPUs:
 
 ```bash
 python -m aps.experiments --config configs/main_table.json --gpus '0;1;2;3' --methods aps
 ```
 
-九组各跑 8 题检查：
+Run eight-question smoke tests for all nine combinations:
 
 ```bash
 python -m aps.experiments --config configs/main_table.json \
   --gpus '0;1;2;3' --methods aps --limit 8 --execute
 ```
 
-检查日志后全量运行：
+After checking the logs, run the full evaluations:
 
 ```bash
 python -m aps.experiments --config configs/main_table.json \
   --gpus '0;1;2;3' --methods aps --execute
 ```
 
-单组可加 `--job qwen25vl_longvideobench`，其他 ID 见 JSON。要同时运行 Uniform，改为 `--methods aps,uniform`，此时是九组模型/数据集组合、每组两种选帧方法，共十八项指标。调度脚本顺序执行所选组合，每个组合内部按 GPU 组并行；没有绑定固定机器或 IP。
+Use `--job qwen25vl_longvideobench` to select one job; see the JSON configuration for other IDs. To include the Uniform control, use `--methods aps,uniform`, producing 18 results across nine model/benchmark combinations. The scheduler runs combinations sequentially, with parallel workers inside each combination. No machine names or IP addresses are fixed in the configuration.
 
-## 8. 消融实验
+## 8. Ablations
 
-统一配置见 [configs/ablations.json](configs/ablations.json)，具体步骤见 [docs/ablations.md](docs/ablations.md)。包含：
+Configurations are in [configs/ablations.json](configs/ablations.json), with instructions in [docs/ablations.md](docs/ablations.md):
 
-- α/β：α∈{0.5,1.0,1.5}，β∈{0.4,0.5,0.6,0.7}；Qwen7B、LVB/VideoMME。
-- 帧数：8/16/32/64；Qwen7B，APS/Uniform，LVB/VideoMME。
-- 模型规模：Qwen2.5-VL 3B/7B/32B；APS/Uniform，LVB/VideoMME。
-- 编码器：BLIP、CLIP、BLIP-2；Qwen7B、LVB/VideoMME。
-- 区间划分：full、equal_length、linear_only、constant_only；Qwen 和 MiniCPM、三个数据集。
-- λ：InternVL 的 0/0.25/0.5/0.75、三个数据集；Qwen 的 λ=0、LVB/VideoMME。
+- **α/β:** α∈{0.5,1.0,1.5}, β∈{0.4,0.5,0.6,0.7}; Qwen7B on LVB/VideoMME.
+- **Frame budget:** 8/16/32/64; Qwen7B, APS/Uniform, LVB/VideoMME.
+- **Model size:** Qwen2.5-VL 3B/7B/32B; APS/Uniform, LVB/VideoMME.
+- **Scoring encoder:** BLIP, CLIP, and BLIP-2; Qwen7B on LVB/VideoMME.
+- **Partitioning:** `full`, `equal_length`, `linear_only`, and `constant_only`; Qwen and MiniCPM on all three benchmarks.
+- **Complexity penalty λ:** 0/0.25/0.5/0.75 for InternVL on all three benchmarks; λ=0 for Qwen on LVB/VideoMME.
 
-## 9. 指标和已有结果
+## 9. Metrics and historical results
 
-LVB、VideoMME 使用逐题准确率；**MLVU 主指标使用七任务准确率的宏平均**。不得把 MLVU 的 micro 数值放入同一张主表。
+LVB and VideoMME use question-level accuracy. **The main MLVU metric is the unweighted mean of the seven task accuracies.** Do not substitute MLVU micro accuracy in the main table.
 
-历史 APS 结果如下，[reports/main_table.json](reports/main_table.json) 仅保留 APS 和 Uniform 对照各九组汇总。其他选帧方法的结果不纳入本仓库。这些是已有国产卡实验的汇总，不是本次 NVIDIA 移植的测量结果。
+Historical APS results are shown below. [reports/main_table.json](reports/main_table.json) contains nine APS aggregates and nine Uniform controls; results for other frame-selection methods are excluded. These measurements come from the original MetaX/FlagOS experiments, not the NVIDIA port.
 
-| 模型 | 帧数 | LVB | VideoMME | MLVU Macro |
+| Model | Frames | LVB | VideoMME | MLVU Macro |
 |---|---:|---:|---:|---:|
 | Qwen2.5-VL-7B | 32 | 63.80% | 62.33% | 68.05% |
 | InternVL3-8B | 32 | 63.58% | 66.85% | 74.17% |
 | MiniCPM-V-4 | 16 | 58.12% | 57.63% | 58.21% |
 
-解析器与原实验保持一致：LVB 无法解析时使用固定逐题种子的随机兜底；VideoMME/MLVU 无法解析出选项时计错，并单列数量。MiniCPM 有部分回答直接输出答案文本，不能在某个方法上单独补解析而不重评所有对比方法。
+Answer parsing follows the historical experiments. LVB uses the original random fallback with a fixed per-question seed when parsing fails. VideoMME/MLVU count unparsed answers as incorrect and report their count separately. Some MiniCPM responses contain answer text rather than an option letter; parser changes must be applied consistently to all compared methods. InternVL's original Chinese system prompt is preserved verbatim because it is part of the evaluation input; code comments, docstrings, and runtime messages are in English.
 
-## 10. 仓库发布
+## 10. Release preparation
 
 ```bash
 pytest -q
@@ -216,6 +220,6 @@ python scripts/check_release.py
 python -m build
 ```
 
-本目录可直接作为独立 Git 仓库。初始化及推送步骤见 [docs/release.md](docs/release.md)。项目论文题目、作者、引用信息和自有代码许可证应使用最终确认内容；没有虚构占位 DOI 或替你选择开源授权。
+This directory is a standalone Git repository. See [release instructions](docs/release.md) for setup and publishing steps. The final paper title, authors, citation, and license for the original APS code remain to be supplied by the owner.
 
-第三方来源与现有版权声明见 [third_party/NOTICE.md](third_party/NOTICE.md)。数据文档中的历史目录名和来源引用只用于导入与溯源，不要求安装旧实验框架。
+Third-party provenance and retained licenses are documented in [third_party/NOTICE.md](third_party/NOTICE.md). Historical directory names and source references support data import and traceability; installing the old experiment framework is not required.
